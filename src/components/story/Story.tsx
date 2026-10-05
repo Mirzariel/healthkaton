@@ -8,6 +8,7 @@ import type { GlossaryKey } from "@/lib/glossary";
 import type { StoryData } from "@/lib/story";
 import { Footer } from "./Footer";
 import { Header, Hero } from "./Hero";
+import { PhoneMock } from "./PhoneMock";
 import { DemoGuide, HowItWorks, WhatIs } from "./Intro";
 import {
   BTN_LINE_DARK,
@@ -287,18 +288,19 @@ export function Story({ d }: { d: StoryData }) {
             <Reveal delay={0.15}>
               <div className="mx-auto mt-10 max-w-md border-t border-ink pt-6 text-left lg:mx-0">
                 <p className="eyebrow flex items-center gap-1.5 text-muted">
-                  Skor <Term k="phantom">phantom billing</Term> <InfoDot k="skor" />
+                  Skor indikasi tagihan fiktif <InfoDot k="skor" />
                 </p>
-                <div className="mt-3 flex items-end gap-4">
+                <div className="mt-3 flex items-baseline gap-3">
                   {rises && (
                     <>
-                      <p className="text-5xl font-semibold tabular-nums tracking-tight text-ink/35">{d.phantom.before}</p>
-                      <p className="pb-2 text-ink/40" aria-hidden>→</p>
+                      <span className="text-5xl font-semibold tabular-nums leading-none tracking-tight text-ink/30">{d.phantom.before}</span>
+                      <span className="text-3xl leading-none text-ink/30" aria-hidden>→</span>
                     </>
                   )}
                   <CountUp value={String(d.phantom.after)} from={rises ? d.phantom.before : 0} delay={0.6} className="text-7xl font-semibold leading-none tracking-tight" />
+                  <span className="text-lg font-medium text-muted">/ 100</span>
                 </div>
-                <p className="mt-2 text-sm text-ink-soft">{rises ? "naik bila ia menjawab “tidak sesuai”" : "dari bukti dokumen dan jawaban peserta"}</p>
+                <p className="mt-3 text-sm text-ink-soft">{rises ? "Naik bila Bu " + first + " menjawab “TIDAK pernah”." : "Dari bukti dokumen dan jawaban peserta."}</p>
                 <div className="relative mt-5 h-1.5 rounded-full bg-line" aria-hidden>
                   {rises && <div className="absolute inset-y-0 left-0 rounded-full bg-ink/25" style={{ width: `${d.phantom.before}%` }} />}
                   <motion.div
@@ -319,25 +321,9 @@ export function Story({ d }: { d: StoryData }) {
             </Reveal>
           </div>
 
-          {/* Perangkat: layar konfirmasi peserta */}
+          {/* Perangkat: layar konfirmasi peserta (sama dengan aplikasi /m) */}
           <Reveal delay={0.1}>
-            <div className="mx-auto w-[290px]" aria-hidden>
-              <div className="rounded-[2.8rem] bg-ink p-[9px] shadow-[0_40px_80px_-30px_rgb(0_0_0/0.45)] ring-1 ring-black/20">
-                <div className="relative overflow-hidden rounded-[2.3rem] bg-white p-5 pt-11 text-ink">
-                  <span className="absolute left-1/2 top-3 h-5 w-20 -translate-x-1/2 rounded-full bg-ink" />
-                  <p className="eyebrow text-muted">Konfirmasi layanan</p>
-                  <p className="mt-2 text-lg font-semibold leading-snug tracking-tight">Apakah {d.phantom.item} Anda terima?</p>
-                  <p className="mt-1 text-xs text-muted">{d.phantom.date} · {hospital}</p>
-                  <div className="mt-6 space-y-2 text-sm font-medium">
-                    <span className="block rounded-xl border border-line py-3 text-center">Sesuai</span>
-                    <span className="block rounded-xl bg-ink py-3 text-center text-white">Tidak sesuai</span>
-                    <span className="block rounded-xl border border-line py-3 text-center">Tidak ingat</span>
-                  </div>
-                  <p className="mt-5 text-center text-[11px] text-muted">Jawaban menjadi sinyal, bukan putusan.</p>
-                  <span className="mx-auto mt-5 block h-1 w-20 rounded-full bg-ink/80" />
-                </div>
-              </div>
-            </div>
+            <PhoneMock firstName={first} code="BRONKO" item={d.phantom.item} date={d.phantom.date} hospital={hospital} />
           </Reveal>
         </div>
       </Section>
