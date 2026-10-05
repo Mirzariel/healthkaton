@@ -43,7 +43,8 @@ export function openDb(file: string): Database.Database {
 export function getDb(): Database.Database {
   const g = globalThis as G;
   if (!g.__sehatiDb) {
-    const file = process.env.SEHATI_DB ?? path.join(process.cwd(), "data", "sehati.db");
+    // Di Vercel (serverless) hanya /tmp yang bisa ditulisi; data demo dibuat ulang otomatis bila kosong.
+    const file = process.env.SEHATI_DB ?? (process.env.VERCEL ? path.join("/tmp", "sehati.db") : path.join(process.cwd(), "data", "sehati.db"));
     const db = openDb(file);
     const n = (db.prepare("SELECT COUNT(*) n FROM participants").get() as { n: number }).n;
     if (n === 0) seedDatabase(db);
