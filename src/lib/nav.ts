@@ -17,8 +17,8 @@ const INTERNAL: Role[] = ["verifikator", "reviewer", "auditor", "admin"];
 
 export const CONSOLE_NAV: NavItem[] = [
   { href: "/console", label: "Ringkasan", group: "Kerja", roles: "all", ready: true, owner: "fondasi" },
-  { href: "/console/cases", label: "Antrean kasus", group: "Kerja", roles: ["verifikator", "reviewer", "auditor", "admin"], ready: false, owner: "kasus-faskes", note: "Antrean pembuktian dan antrean tindakan perbaikan dipisah." },
-  { href: "/console/assistant", label: "Asisten AI (peninjauan)", group: "Kerja", roles: ["verifikator", "reviewer", "admin"], ready: false, owner: "kasus-faskes", note: "Menggantikan /console/autopilot (redirect terdokumentasi). AI hanya menyarankan." },
+  { href: "/console/cases", label: "Antrean kasus", group: "Kerja", roles: ["verifikator", "reviewer", "auditor", "admin"], ready: true, owner: "kasus-faskes", note: "Antrean pembuktian dan antrean tindakan perbaikan dipisah." },
+  { href: "/console/assistant", label: "Asisten AI (peninjauan)", group: "Kerja", roles: ["verifikator", "reviewer", "admin"], ready: true, owner: "kasus-faskes", note: "Menggantikan /console/autopilot (redirect terdokumentasi). AI hanya menyarankan." },
   { href: "/console/precheck", label: "Pra-pengajuan", group: "Kerja", roles: ["verifikator", "reviewer", "admin"], ready: false, owner: "pending-kartu-bayar-impor" },
   { href: "/console/pending", label: "Pemilahan pending", group: "Kerja", roles: ["verifikator", "reviewer", "admin"], ready: false, owner: "pending-kartu-bayar-impor" },
   { href: "/console/import", label: "Impor data", group: "Kerja", roles: ["admin"], ready: false, owner: "pending-kartu-bayar-impor" },
@@ -33,7 +33,7 @@ export const CONSOLE_NAV: NavItem[] = [
 
 export const SURFACES = [
   { href: "/m", label: "Aplikasi peserta", owner: "survei-ai", ready: false },
-  { href: "/faskes", label: "Portal faskes", owner: "kasus-faskes", ready: false },
+  { href: "/faskes", label: "Portal faskes", owner: "kasus-faskes", ready: true },
   { href: "/console", label: "Konsol petugas", owner: "fondasi", ready: true },
 ] as const;
 

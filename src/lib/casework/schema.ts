@@ -4,7 +4,7 @@
    - case_summaries: DRAF ringkasan bukti (mode simulasi/langsung/fallback), dapat dikoreksi petugas. Bukan keputusan.
    - assistant_suggestions: saran langkah pemeriksaan. Petugas menerima/mengubah/menolak dengan alasan; saran tidak dieksekusi otomatis.
    - case_notes: catatan internal petugas. Tidak pernah ditampilkan ke faskes atau peserta. */
-export const M004_CASEWORK = `
+export const M005_CASEWORK = `
 ALTER TABLE evidence_searches ADD COLUMN finding_id TEXT;
 
 CREATE TABLE IF NOT EXISTS case_summaries (

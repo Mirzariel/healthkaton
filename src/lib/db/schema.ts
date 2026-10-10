@@ -4,7 +4,7 @@
    - audit_log append-only (trigger menolak UPDATE/DELETE).
    - nilai enum status dibatasi CHECK agar transisi liar ditolak. */
 
-import { M004_CASEWORK } from "../casework/schema";
+import { M005_CASEWORK } from "../casework/schema";
 
 export const ROLES_SQL = "'peserta','pendamping','faskes','verifikator','reviewer','auditor','admin'";
 
@@ -403,5 +403,5 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
   { id: "001_core", sql: M001 },
   { id: "002_guards", sql: M002 },
   { id: "003_notifications", sql: M003 },
-  { id: "004_casework", sql: M004_CASEWORK },
+  { id: "005_casework", sql: M005_CASEWORK },
 ];
