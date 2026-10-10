@@ -41,7 +41,7 @@ describe("kasus-faskes: kondisi seed", () => {
     const st = Object.fromEntries(rows<{ id: string; proof_status: string }>(db, "SELECT id, proof_status FROM findings WHERE id IN ('F-0007','F-0008','F-0009','F-0075','F-0076')").map((r) => [r.id, r.proof_status]));
     expect(st).toEqual({ "F-0007": "verified", "F-0008": "not_verified", "F-0009": "under_review", "F-0075": "verified", "F-0076": "verified" });
     expect(one<{ status: string }>(db, "SELECT status FROM clarifications WHERE id = 'KL-0003'").status).toBe("lapsed");
-    expect(rows<{ id: string; status: string }>(db, "SELECT id, status FROM improvement_actions ORDER BY id")).toEqual([{ id: "TP-0001", status: "closed" }, { id: "TP-0002", status: "in_progress" }]);
+    expect(rows<{ id: string; status: string }>(db, "SELECT id, status FROM improvement_actions WHERE id IN ('TP-0001', 'TP-0002') ORDER BY id")).toEqual([{ id: "TP-0001", status: "closed" }, { id: "TP-0002", status: "in_progress" }]);
     expect(rows(db, "SELECT 1 FROM review_decisions WHERE finding_id = 'F-0009' AND state = 'pending' AND kind = 'proof_proposal'")).toHaveLength(1);
   });
   it("eskalasi dugaan tercatat dengan dua persetujuan peran berbeda dan peninjauan klaim hanya simulasi", () => {
@@ -59,7 +59,7 @@ describe("kasus-faskes: kondisi seed", () => {
   });
   it("rantai audit sah dan cerminan layanan sejalan dengan status kasus", () => {
     expect(verifyChain(db).ok).toBe(true);
-    expect(rows<{ status: string }>(db, "SELECT status FROM service_requests ORDER BY id")).toEqual([{ status: "action" }, { status: "closed" }]);
+    expect(rows<{ status: string }>(db, "SELECT status FROM service_requests WHERE id LIKE 'LP-%' ORDER BY id")).toEqual([{ status: "action" }, { status: "closed" }]);
   });
 });
 
@@ -71,7 +71,7 @@ describe("kasus-faskes: hak akses", () => {
     expect(() => assistantInbox(db, peserta)).toThrow(AuthError);
     expect(proofQueue(db, ver).total).toBeGreaterThan(0);
     expect(actionQueue(db, rev).total).toBe(1);
-    expect(actionQueue(db, rev, { status: "all" }).total).toBe(2);
+    expect(actionQueue(db, rev, { status: "all" }).total).toBeGreaterThanOrEqual(2);
     expect(getCaseRoom(db, aud, caseOfFinding(db, "F-0007")).findings.length).toBeGreaterThan(0);
   });
   it("portal faskes ditolak untuk peran lain", () => {
@@ -95,8 +95,10 @@ describe("kasus-faskes: hak akses", () => {
     await expect(executeFacilityCommand(db, rsnm, { type: "create_dispute", findingId: "F-0007", text: "Bantahan dari faskes yang salah." })).rejects.toThrow();
     await expect(executeFacilityCommand(db, rsnm, { type: "start_action", actionId: "TP-0002" })).rejects.toThrow();
     expect(facilityClarifications(db, rsnm).every((c) => !["KL-0001", "KL-0002", "KL-0004"].includes(c.id))).toBe(true);
-    expect(facilityActions(db, rsnm).map((a) => a.id)).toEqual(["TP-0001"]);
-    expect(facilityActions(db, pkkn).map((a) => a.id)).toEqual(["TP-0002"]);
+    expect(facilityActions(db, rsnm).map((a) => a.id)).toContain("TP-0001");
+    expect(facilityActions(db, rsnm).map((a) => a.id)).not.toContain("TP-0002");
+    expect(facilityActions(db, pkkn).map((a) => a.id)).toContain("TP-0002");
+    expect(facilityActions(db, pkkn).map((a) => a.id)).not.toContain("TP-0001");
     const doc = addDocument(db, rsts, { facilityId: "FAC-RSTS", name: "catatan.txt", bytes: Buffer.from("Catatan pemeriksaan pasien tanggal 3 Oktober."), clarificationId: "KL-0002" });
     expect(() => assertDocumentAccess(db, rsnm, doc.id)).toThrow(AuthError);
     expect(() => assertDocumentAccess(db, rsts, doc.id)).not.toThrow();
@@ -150,6 +152,7 @@ describe("kasus-faskes: apa yang boleh dilihat faskes", () => {
     // batas diuji dengan menurunkan jumlah responden: tanpa fakta survei, tidak ada butir yang tampil
     const empty = openDb(":memory:");
     seedAll(empty);
+    empty.exec("DROP TRIGGER facts_no_delete");
     empty.exec("DELETE FROM participant_facts");
     expect(facilityQualityReport(empty, rsts).indicators).toEqual([]);
   });

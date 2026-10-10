@@ -13,6 +13,7 @@ import { DATASET_ID, BUDGETS, loadCases } from "./dataset";
 import { computeRunMetrics, getRun, runResults, type RunRow } from "./metrics";
 import { buildTurnContext, runSession, runTurn, type LlmOpts, type TurnContext, type TurnOutcome } from "./pipeline";
 import { ProviderUnavailableError, providerMeta, resolveProvider } from "./provider";
+import "./live";
 import { scoreSession, scoreTurn } from "./score";
 import type { CaseResult, EvalCaseDef, EvalSystem, SessionInput, TurnInput } from "./types";
 

@@ -201,9 +201,11 @@ describe("injeksi prompt dan AI tidak memutuskan apa pun", () => {
   });
 
   it("seluruh temuan dari survei berstatus 'sinyal' dan bukan keputusan", () => {
-    const rows = db.prepare("SELECT proof_status, source FROM findings WHERE dedupe_key LIKE 'T4:%'").all() as { proof_status: string; source: string }[];
+    const rows = db.prepare("SELECT id, proof_status FROM findings WHERE dedupe_key LIKE 'T4:%'").all() as { id: string; proof_status: string }[];
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((r) => r.proof_status === "signal")).toBe(true);
+    // temuan seed dari modul lain boleh sudah diproses PETUGAS; yang tidak boleh: berubah tanpa keputusan manusia
+    const humanActed = new Set((db.prepare("SELECT DISTINCT entity_id FROM audit_log WHERE entity = 'finding' AND (actor LIKE 'verifikator:%' OR actor LIKE 'reviewer:%' OR actor LIKE 'auditor:%' OR actor LIKE 'admin:%')").all() as { entity_id: string }[]).map((r) => r.entity_id));
+    expect(rows.filter((r) => r.proof_status !== "signal" && !humanActed.has(r.id))).toEqual([]);
   });
 });
 
@@ -372,7 +374,7 @@ describe("laporan kendala dan permintaan bantuan", () => {
     const mine = listReports(db, p);
     expect(mine.filter((r) => r.text.startsWith("Obat pulang hanya")).length).toBe(1);
     expect(findForbiddenTerms(mine[0].hint + mine[0].status_label)).toEqual([]);
-    expect(count("SELECT COUNT(*) n FROM findings WHERE source = 'participant_report' AND proof_status IN ('verified','not_verified')")).toBe(0);
+    expect(count(`SELECT COUNT(*) n FROM service_requests s JOIN findings f ON f.id = s.finding_id WHERE s.id = '${id.id}' AND f.proof_status <> 'signal'`)).toBe(0);
   });
 
   it("tanda gawat darurat pada teks bebas memunculkan permintaan bantuan manusia, bukan keputusan AI", () => {

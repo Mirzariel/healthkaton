@@ -7,7 +7,8 @@ import {
 } from "../cases/core";
 import { setNow } from "../clock";
 import { addDays, addHours } from "../dates";
-import { json, setMeta } from "../db";
+import { recordEvidenceSearch } from "../casework/workflow";
+import { json, nextId, setMeta } from "../db";
 import { DomainError } from "../idem";
 import { FINDING_LABEL } from "../labels";
 import { makeRng, type Rng } from "../rng";
@@ -201,7 +202,6 @@ export function seedQuality(db: Database.Database, refs: SeedRefs) {
   const at = (t: string, run: () => void) => { if (t <= SEED_NOW) queue.push({ t, seq: seq++, run }); };
   const srIns = db.prepare("INSERT INTO service_requests (id, participant_id, episode_id, facility_id, category, text, status, case_id, finding_id, respondent_role, created_at, idem_key) VALUES (?,?,?,?,?,?, 'received', ?, ?, ?, ?, NULL)");
   const srSet = (fid: string, st: string) => db.prepare("UPDATE service_requests SET status = ? WHERE finding_id = ?").run(st, fid);
-  let srN = 0;
 
   const CATEGORY_TEXT: Record<string, string> = {
     obat: "Peserta melaporkan obat untuk dibawa pulang belum diterima seluruhnya.",
@@ -265,7 +265,7 @@ export function seedQuality(db: Database.Database, refs: SeedRefs) {
         signals: [{ key: `${p.slot}`, label: hit?.note ?? "Jawaban peserta pada survei rutin", weight: 40 }], score: 40, dedupe_key: `T4:${p.b.sessionId}:${p.indicator.indicator_id}`, category: p.category,
       });
       if (!res.created) return;
-      srIns.run(`SRQ-${pad(++srN, 4)}`, e.participant_id, e.id, e.facility_id, p.category, CATEGORY_TEXT[p.category] ?? hit?.note ?? "Laporan peserta pada survei rutin.", res.caseId, res.findingId, "self", p.t0);
+      srIns.run(nextId(db, "SRQ"), e.participant_id, e.id, e.facility_id, p.category, CATEGORY_TEXT[p.category] ?? hit?.note ?? "Laporan peserta pada survei rutin.", res.caseId, res.findingId, "self", p.t0);
       const fid = res.findingId;
       const state: { fid: string; caseId: string; clarifId: string | null; proposalId: number | null } = { fid, caseId: res.caseId, clarifId: null, proposalId: null };
       const tStart = addHours(p.t0, dFinding * 24);
@@ -299,6 +299,9 @@ export function seedQuality(db: Database.Database, refs: SeedRefs) {
             `EL-Q-${fid}`, fid, state.caseId, "Catatan serah obat/layanan (sintetis) memperlihatkan layanan belum terpenuhi sepenuhnya.", "Bukti sintetis untuk demo; bukan dokumen asli.", ver.id, tPropose,
           );
           appendAudit(db, { actor: ver.id, actor_role: ver.role, action: "bukti_ditautkan", entity: "finding", entity_id: fid, detail: { arah: "mendukung" } });
+        }
+        if (outcome === "inconclusive") {
+          recordEvidenceSearch(db, ver, { findingId: fid, source: "Catatan pelaksanaan faskes (sintetis)", query: "Mencari catatan pelaksanaan layanan yang dilaporkan peserta", result: "not_found" });
         }
         state.proposalId = proposeProof(db, ver, fid, outcome, outcome === "verified" ? "Bukti pelaksanaan mendukung laporan peserta; hak jawab faskes terpenuhi." : outcome === "not_verified" ? "Pencarian bukti tidak menunjukkan masalah; indikasi gugur." : "Pencarian bukti sudah dilakukan dan tidak cukup untuk menyimpulkan.");
       });
