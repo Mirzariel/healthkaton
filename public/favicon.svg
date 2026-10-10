@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <rect width="256" height="256" rx="52" fill="#F6F5F1"/>
+  <title id="title">SEHATI logo</title>
+  <desc id="desc">Minimal geometric S mark inspired by two chat bubbles, using teal and deep green.</desc>
+  <path d="M174 38H103C67 38 46 58 46 88c0 25 16 40 43 47l35 10c12 3 18 8 18 16 0 9-8 14-21 14H65v39h65c40 0 64-21 64-53 0-26-16-42-44-50l-37-10c-11-3-17-7-17-14 0-8 7-12 20-12h58z" fill="#2FA58F"/>
+  <path d="M82 218h72c37 0 59-20 59-50 0-25-16-41-43-49l-38-11c-12-3-18-8-18-16 0-9 8-14 21-14h67V39h-66c-40 0-64 21-64 53 0 26 16 42 44 50l37 10c11 3 16 7 16 14 0 8-7 12-19 12H82z" fill="#0B5C4F"/>
+</svg>
