@@ -195,7 +195,8 @@ export const INDICATOR_SEEDS: IndicatorSeed[] = [
   },
   {
     indicator_id: "MED_EXPLAIN", standard: "STD-JANJI@draft-1", title: "Penjelasan aturan pakai obat saat penyerahan", kind: "communication", stage: "post", scope: HOSP,
-    applicability: { field: "medication_receipt", operator: "in", values: ["full", "partial"] }, required: ["medication_instructions_explained"],
+    // bergantung pada butir pemenuhan obat: bila tidak ada resep pulang, butir ini juga tidak berlaku (bukan menggantung 'menunggu')
+    applicability: { all: [{ field: "discharge_prescription_expected", operator: "eq", value: true }, { field: "medication_receipt", operator: "in", values: ["full", "partial"] }] }, required: ["medication_instructions_explained"],
     slots: [bool("medication_instructions_explained", "Aturan minum obat dijelaskan saat penyerahan")], source: L2, locator: "Bagian 5.4, Q-POST-02 (kolom SOP belum diisi)",
     questions: [{ id: "MED_EXPLAIN_V1", slot: "medication_instructions_explained", text: "Saat obat diserahkan, apakah petugas menjelaskan aturan minumnya?", ord: 20 }],
   },
