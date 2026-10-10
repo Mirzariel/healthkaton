@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
+import { GLOSSARY, type GlossaryEntry, type GlossaryKey } from "@/lib/glossary";
 
 /* Komponen penjelas: membuat setiap kode & istilah bisa "ditanya" tanpa meninggalkan halaman.
    - <Term k="phantom">phantom billing</Term>   → teks bergaris titik-titik, klik/arahkan untuk penjelasan
@@ -69,7 +69,7 @@ function usePopover() {
 }
 
 function Bubble({ k, open, pos, id, hover }: { k: GlossaryKey; open: boolean; pos: { top: number; left: number; above: boolean } | null; id: string; hover: { onMouseEnter: () => void; onMouseLeave: () => void } }) {
-  const g = GLOSSARY[k];
+  const g: GlossaryEntry = GLOSSARY[k];
   if (typeof document === "undefined") return null;
   return createPortal(
     <AnimatePresence>

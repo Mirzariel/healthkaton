@@ -42,3 +42,6 @@ next-env.d.ts
 
 # basis data demo (dibuat otomatis saat pertama dijalankan)
 /data/
+
+# basis data awal hasil build
+/seed/
