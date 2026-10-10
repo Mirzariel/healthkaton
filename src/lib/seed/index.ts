@@ -3,6 +3,8 @@ import { setNow } from "../clock";
 import { seedStandards } from "../standards/registry";
 import { SEED_NOW, seedBase } from "./base";
 import { seedDomain } from "./domain";
+import { seedEvaluation } from "../evaluation/dataset";
+import { seedQuality } from "./quality";
 
 export { SEED_NOW };
 
@@ -35,6 +37,8 @@ export function seedAll(db: Database.Database) {
     db.prepare("INSERT INTO policy_versions (id, domain, version, params_json, status, note, effective_from, created_by, created_at) VALUES ('POL-PAY-1','payment','demo-1',?,'draft',?,?,?,?)").run(JSON.stringify(DEMO_PAYMENT_PARAMS), DEMO_PAYMENT_PARAMS.label, "2026-01-01", "sistem", SEED_NOW);
     const refs = seedBase(db);
     seedDomain(db, refs);
+    seedQuality(db, refs);
+    seedEvaluation(db);
   } finally {
     setNow(null);
   }
