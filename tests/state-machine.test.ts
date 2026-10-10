@@ -131,7 +131,8 @@ describe("mesin status pembuktian", () => {
   });
   it("transisi liar ditolak langsung oleh basis data", () => {
     expect(() => db.prepare("UPDATE findings SET proof_status = 'verified' WHERE proof_status = 'signal'").run()).toThrow(/transisi/);
-    expect(() => db.prepare("UPDATE improvement_actions SET status = 'closed'").run()).not.toThrow(); // belum ada baris
+    expect(() => db.prepare("UPDATE improvement_actions SET status = 'closed' WHERE id = '__tidak-ada__'").run()).not.toThrow(); // tidak mengenai baris mana pun
+    expect(() => db.prepare("UPDATE improvement_actions SET status = 'closed' WHERE status = 'in_progress'").run()).toThrow(/transisi/); // in_progress → closed ditolak basis data
   });
   it("tindakan perbaikan → tindak lanjut → konfirmasi peserta menutup tindakan", () => {
     const f2 = db.prepare("SELECT id FROM findings WHERE claim_id = 'C-0002'").get() as { id: string };

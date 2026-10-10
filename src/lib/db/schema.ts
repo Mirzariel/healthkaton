@@ -5,6 +5,7 @@
    - nilai enum status dibatasi CHECK agar transisi liar ditolak. */
 
 import { M004_PKBI } from "./migrations-pkbi";
+import { M005_CASEWORK } from "../casework/schema";
 
 export const ROLES_SQL = "'peserta','pendamping','faskes','verifikator','reviewer','auditor','admin'";
 
@@ -404,4 +405,5 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
   { id: "002_guards", sql: M002 },
   { id: "003_notifications", sql: M003 },
   { id: "004_pkbi", sql: M004_PKBI },
+  { id: "005_casework", sql: M005_CASEWORK },
 ];

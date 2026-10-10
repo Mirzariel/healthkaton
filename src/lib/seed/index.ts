@@ -5,6 +5,7 @@ import { SEED_NOW, seedBase } from "./base";
 import { seedDomain } from "./domain";
 import { seedSurvey } from "../survey/seed";
 import { seedKeuangan } from "./keuangan";
+import { KASUS_START, seedKasus } from "./kasus";
 
 export { SEED_NOW };
 
@@ -36,7 +37,10 @@ export function seedAll(db: Database.Database) {
     db.prepare("INSERT INTO policy_versions (id, domain, version, params_json, status, note, effective_from, created_by, created_at) VALUES ('POL-CARD-1','card','demo-1',?,'draft',?,?,?,?)").run(JSON.stringify(DEMO_CARD_PARAMS), DEMO_CARD_PARAMS.label, "2026-07-01", "sistem", SEED_NOW);
     db.prepare("INSERT INTO policy_versions (id, domain, version, params_json, status, note, effective_from, created_by, created_at) VALUES ('POL-PAY-1','payment','demo-1',?,'draft',?,?,?,?)").run(JSON.stringify(DEMO_PAYMENT_PARAMS), DEMO_PAYMENT_PARAMS.label, "2026-01-01", "sistem", SEED_NOW);
     const refs = seedBase(db);
+    // sinyal pertama terdeteksi di awal rentang cerita; modul kasus-faskes memainkan riwayat kerja sampai SEED_NOW
+    setNow(KASUS_START);
     seedDomain(db, refs);
+    seedKasus(db);
     seedSurvey(db, refs.hero);
     seedKeuangan(db); // modul pending-kartu-bayar-impor
   } finally {
