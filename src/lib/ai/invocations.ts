@@ -82,4 +82,5 @@ export function logInvocation(db: Database.Database, l: InvocationLog): string {
 }
 
 export const requestFingerprint = (req: unknown) => sha256(JSON.stringify(req)).slice(0, 12);
-export const parseJson = json;
+/** Pembungkus (bukan alias) agar tidak membaca `json` saat modul dimuat: db/index mengimpor seed, dan seed kini memuat modul ini. */
+export const parseJson = <T,>(s: string | null | undefined, fallback: T): T => json(s, fallback);

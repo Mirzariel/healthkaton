@@ -256,8 +256,9 @@ export function proposeProof(db: Database.Database, p: Principal, findingId: str
       const rr = rightOfReplySatisfied(db, findingId);
       if (!rr.satisfied) throw new DomainError(`Hak jawab faskes belum terpenuhi. ${rr.reason}`, 422);
     }
-    if (outcome === "inconclusive" && f.claim_id) {
-      const n = (db.prepare("SELECT COUNT(*) n FROM evidence_searches WHERE claim_id = ? AND result IN ('not_found','inconsistent')").get(f.claim_id) as { n: number }).n;
+    if (outcome === "inconclusive") {
+      // catatan pencarian dapat terkait klaim (jalur lama) atau langsung ke temuan (migrasi 004; berlaku juga untuk temuan tanpa klaim)
+      const n = (db.prepare("SELECT COUNT(*) n FROM evidence_searches WHERE (finding_id = ? OR (claim_id IS NOT NULL AND claim_id = ?)) AND result IN ('not_found','inconsistent')").get(f.id, f.claim_id) as { n: number }).n;
       if (n < 1) throw new DomainError("'Tidak dapat dibuktikan' membutuhkan catatan pencarian bukti yang sudah dilakukan.", 422);
     }
     db.prepare("UPDATE review_decisions SET state = 'rejected' WHERE finding_id = ? AND kind = 'proof_proposal' AND state = 'pending'").run(findingId);
@@ -285,6 +286,11 @@ export function decideProof(db: Database.Database, p: Principal, proposalId: num
       return f.proof_status;
     }
     if (f.proof_status === "signal" && d.decision === "verified") throw new DomainError("Tidak dapat menyetujui 'Terbukti' dari status 'Sinyal'.", 409);
+    if (d.decision === "verified") {
+      // hak jawab mencakup bantahan: 'Terbukti' tidak disetujui selagi ada bantahan faskes yang belum ditanggapi
+      const open = db.prepare("SELECT 1 FROM disputes WHERE kind = 'finding' AND ref_id = ? AND status = 'open'").get(f.id);
+      if (open) throw new DomainError("Ada bantahan faskes atas temuan ini yang belum ditanggapi. Tanggapi dulu sebelum menyetujui 'Terbukti'.", 409);
+    }
     setProof(db, f, d.decision, p, { usulan: d.id });
     db.prepare("UPDATE review_decisions SET state = 'approved' WHERE id = ?").run(d.id);
     db.prepare("INSERT INTO review_decisions (case_id, finding_id, kind, decision, reason, actor_id, actor_role, state, ref_id, simulated, at) VALUES (?,?,?,?,?,?,?,'recorded',?,0,?)").run(f.case_id, f.id, "proof_approval", d.decision, note.trim() || "Disetujui.", p.id, p.role, d.id, nowPrecise());
