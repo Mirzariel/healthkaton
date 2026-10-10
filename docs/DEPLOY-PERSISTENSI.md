@@ -23,3 +23,7 @@ Lihat tabel di `KONTRAK-DOMAIN.md` §9. Ganti `SEHATI_SESSION_SECRET`; isi `SEHA
 ## Keputusan
 
 2026-10-10: pemilik proyek memilih **A (demo saja)**: Vercel + SQLite `/tmp`, tanpa perubahan kode. Seluruh modul tetap memakai akses data sinkron (`db` sebagai argumen). Tinjau ulang bila data harus bertahan; pilihan B tidak memerlukan perubahan kode.
+
+## Cold start
+
+`npm run build` menjalankan `scripts/build-seed.ts` (prebuild) yang membuat `seed/sehati-seed.db` berisi data sintetis lengkap (~5,5 MB; seed dari nol memakan ~9 detik). `next.config.ts` menyertakan berkas itu pada trace fungsi, dan `getDb()` menyalinnya ke `/tmp/sehati-v2.db` pada cold start. Bila berkas tidak ada, aplikasi tetap bisa seed dari nol (`SEHATI_NO_PRESEED=1` memaksa jalur itu).

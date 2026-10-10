@@ -8,7 +8,8 @@
     "start": "next start",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prebuild": "tsx scripts/build-seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

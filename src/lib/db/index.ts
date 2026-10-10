@@ -33,9 +33,23 @@ export function dbFile() {
 }
 
 /** Koneksi tunggal; basis data dibuat dan diisi (seed) otomatis pada pemakaian pertama. */
+export const PRESEEDED_DB = path.join(process.cwd(), "seed", "sehati-seed.db");
+
+/** Di serverless, salin basis data yang sudah terisi (dibuat saat build) ke jalur tulis agar cold start tidak menjalankan seed ~9 detik. */
+function restorePreseeded(file: string) {
+  if (file === ":memory:" || process.env.SEHATI_NO_PRESEED === "1" || fs.existsSync(file) || !fs.existsSync(PRESEEDED_DB)) return;
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.copyFileSync(PRESEEDED_DB, file);
+  } catch {
+    // gagal menyalin: lanjut dengan seed biasa
+  }
+}
+
 export function getDb(): Database.Database {
   const g = globalThis as G;
   if (!g.__sehatiDb) {
+    restorePreseeded(dbFile());
     const db = openDb(dbFile());
     g.__sehatiDb = db;
     ensureSeeded(db);

@@ -8,7 +8,7 @@ SEHATI memastikan layanan JKN yang dijanjikan benar-benar diterima peserta, dan 
 
 ## Status
 
-Cabang ini memuat **fondasi** (skema, state machine, RBAC, jejak audit, adapter, kontrak AI v1, registry standar, cangkang konsol, beranda). Modul berikut dikerjakan terpisah di atas fondasi ini: survei dan runtime AI, ruang kasus dan portal faskes, pending/kartu/pembayaran/impor, dasbor mutu dan evaluasi. Peta lengkap: [`docs/KONTRAK-DOMAIN.md`](docs/KONTRAK-DOMAIN.md).
+Fondasi dan keempat modul sudah terintegrasi: survei peserta dan runtime AI (`/m`, `/console/ai`), ruang kasus dan portal faskes (`/console/cases`, `/console/assistant`, `/faskes`), pending/kartu/pembayaran/impor/pra-pengajuan/dokumen bukti, dan dasbor mutu serta evaluasi AI (`/console/quality`, `/console/ai/evaluation`). AI berjalan sebagai **simulasi berlabel** sampai `ANTHROPIC_API_KEY` dipasang di server. Peta lengkap: [`docs/KONTRAK-DOMAIN.md`](docs/KONTRAK-DOMAIN.md).
 
 ## Jalankan
 
@@ -27,7 +27,8 @@ Node 22+. Basis data: `data/sehati-v2.db` (SQLite, otomatis, tidak ikut repo).
 - [`docs/INVENTARIS-DAN-PETA-PERUBAHAN.md`](docs/INVENTARIS-DAN-PETA-PERUBAHAN.md): baseline, reposisi, peta rute lama → baru.
 - [`docs/KONTRAK-DOMAIN.md`](docs/KONTRAK-DOMAIN.md): tabel, state machine, adapter, kontrak AI, folder per modul, variabel lingkungan.
 - [`docs/DEPLOY-PERSISTENSI.md`](docs/DEPLOY-PERSISTENSI.md): batas penyimpanan di Vercel dan opsinya.
+- Modul: [`docs/SURVEI-AI.md`](docs/SURVEI-AI.md), [`docs/KASUS-FASKES.md`](docs/KASUS-FASKES.md), [`docs/MODUL-PENDING-KARTU-BAYAR-IMPOR.md`](docs/MODUL-PENDING-KARTU-BAYAR-IMPOR.md), [`docs/DASBOR-MUTU-EVALUASI.md`](docs/DASBOR-MUTU-EVALUASI.md).
 
 ## Batas
 
-Belum terhubung ke SIMRS, layanan resmi BPJS, atau JKN Mobile. Belum ada autentikasi nyata: pemilih peran hanya untuk demo data sintetis. Penyedia AI langsung belum diimplementasikan; yang ada kontrak dan konfigurasinya.
+Belum terhubung ke SIMRS, layanan resmi BPJS, atau JKN Mobile. Belum ada autentikasi nyata: pemilih peran hanya untuk demo data sintetis. Penyedia AI langsung (Anthropic) sudah ditulis tetapi belum pernah dipanggil ke API sungguhan (tidak ada kunci saat pengembangan). Data demo kembali ke kondisi awal saat instans Vercel dingin (lihat `docs/DEPLOY-PERSISTENSI.md`).
