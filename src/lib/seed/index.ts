@@ -6,6 +6,8 @@ import { seedDomain } from "./domain";
 import { seedSurvey } from "../survey/seed";
 import { seedKeuangan } from "./keuangan";
 import { KASUS_START, seedKasus } from "./kasus";
+import { seedEvaluation } from "../evaluation/dataset";
+import { seedQuality } from "./quality";
 
 export { SEED_NOW };
 
@@ -43,6 +45,8 @@ export function seedAll(db: Database.Database) {
     seedKasus(db);
     seedSurvey(db, refs.hero);
     seedKeuangan(db); // modul pending-kartu-bayar-impor
+    seedQuality(db, refs);
+    seedEvaluation(db);
   } finally {
     setNow(null);
   }
