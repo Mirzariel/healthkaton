@@ -4,6 +4,8 @@
    - audit_log append-only (trigger menolak UPDATE/DELETE).
    - nilai enum status dibatasi CHECK agar transisi liar ditolak. */
 
+import { M004_PKBI } from "./migrations-pkbi";
+
 export const ROLES_SQL = "'peserta','pendamping','faskes','verifikator','reviewer','auditor','admin'";
 
 const M001 = `
@@ -401,4 +403,5 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
   { id: "001_core", sql: M001 },
   { id: "002_guards", sql: M002 },
   { id: "003_notifications", sql: M003 },
+  { id: "004_pkbi", sql: M004_PKBI },
 ];
