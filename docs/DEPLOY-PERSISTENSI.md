@@ -19,3 +19,7 @@ Sekarang A untuk demo (nol perubahan, label jelas bahwa data sintetis dan dapat 
 ## Variabel lingkungan
 
 Lihat tabel di `KONTRAK-DOMAIN.md` §9. Ganti `SEHATI_SESSION_SECRET`; isi `SEHATI_ANCHOR_SECRET` agar jangkar audit bertanda tangan; set `SEHATI_DEMO_ROLES=0` di lingkungan non-demo.
+
+## Keputusan
+
+2026-10-10: pemilik proyek memilih **A (demo saja)**: Vercel + SQLite `/tmp`, tanpa perubahan kode. Seluruh modul tetap memakai akses data sinkron (`db` sebagai argumen). Tinjau ulang bila data harus bertahan; pilihan B tidak memerlukan perubahan kode.
