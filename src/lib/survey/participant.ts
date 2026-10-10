@@ -28,7 +28,7 @@ export const REPORT_STATUS_LABEL: Record<string, { label: string; hint: string }
   clarification: { label: "Faskes diminta menjelaskan", hint: "Faskes diberi kesempatan memberi penjelasan. Ini belum berarti ada kesalahan." },
   action: { label: "Perbaikan sedang dikerjakan", hint: "Ada perbaikan yang sedang dikerjakan faskes." },
   resolved: { label: "Selesai ditangani", hint: "Penanganan selesai. Anda mungkin diminta mengonfirmasi." },
-  closed: { label: "Ditutup", hint: "Laporan ditutup." },
+  closed: { label: "Selesai ditinjau", hint: "Petugas telah selesai meninjau laporan ini." },
 };
 
 const actorLike = (a: Actor | Principal) => ({ actor: a.id, actor_role: a.role });
@@ -140,7 +140,7 @@ export function createServiceReport(db: Database.Database, p: Principal, inp: { 
   if (!ep || ep.participant_id !== pid) throw new DomainError("Episode tidak ditemukan.", 404);
   const r = idempotent(db, `survey.report:${pid}`, inp.idem_key, () =>
     db.transaction(() => {
-      const open = (db.prepare("SELECT COUNT(*) n FROM service_requests WHERE participant_id = ? AND status IN ('received','in_review','clarification','action')").get(pid) as { n: number }).n;
+      const open = listReports(db, p).filter((x) => OPEN_REPORT.has(x.status)).length;
       if (open >= 10) throw new DomainError("Ada terlalu banyak laporan yang masih berjalan. Tunggu sebagian selesai ditangani.", 409, "too_many_open");
       const id = nextId(db, "SRQ");
       db.prepare("INSERT INTO service_requests (id, participant_id, episode_id, facility_id, category, text, status, respondent_role, created_at, idem_key) VALUES (?,?,?,?,?,?,'received',?,?,?)").run(id, pid, ep.id, ep.facility_id, cat.id, text, respondentRole(p), nowPrecise(), inp.idem_key ?? null);
@@ -158,13 +158,38 @@ export function createServiceReport(db: Database.Database, p: Principal, inp: { 
   return { id: r.value, replayed: r.replayed };
 }
 
+/** Status untuk peserta diturunkan dari keadaan temuan, klarifikasi, dan tindakan perbaikan (satu sumber kebenaran: modul kasus). Tidak ada yang menulis ke tabel permintaan layanan. */
+export function deriveReportStatus(db: Database.Database, r: { status: string; finding_id: string | null }): string {
+  if (!r.finding_id) return r.status;
+  const f = db.prepare("SELECT proof_status FROM findings WHERE id = ?").get(r.finding_id) as { proof_status: string } | undefined;
+  if (!f) return r.status;
+  const acts = db.prepare("SELECT status FROM improvement_actions WHERE finding_id = ?").all(r.finding_id) as { status: string }[];
+  if (acts.length) {
+    if (acts.some((a) => a.status === "open" || a.status === "in_progress")) return "action";
+    if (acts.some((a) => a.status === "resolved" || a.status === "follow_up_pending")) return "resolved";
+    return "closed";
+  }
+  switch (f.proof_status) {
+    case "awaiting_clarification": return "clarification";
+    case "under_review":
+    case "verified": return "in_review";
+    case "not_verified":
+    case "inconclusive": return "closed";
+    default: return "received";
+  }
+}
+const OPEN_REPORT = new Set(["received", "in_review", "clarification", "action"]);
+
 export function listReports(db: Database.Database, p: Principal): ReportView[] {
   const pid = ownParticipant(db, p);
-  const rows = db.prepare("SELECT r.*, f.name AS facility_name FROM service_requests r JOIN facilities f ON f.id = r.facility_id WHERE r.participant_id = ? ORDER BY r.created_at DESC LIMIT 20").all(pid) as { id: string; category: string; text: string; status: string; created_at: string; facility_name: string }[];
-  return rows.map((r) => ({
-    id: r.id, category: r.category, category_label: REPORT_CATEGORIES.find((c) => c.id === r.category)?.label ?? r.category, text: r.text, status: r.status,
-    status_label: REPORT_STATUS_LABEL[r.status]?.label ?? r.status, hint: REPORT_STATUS_LABEL[r.status]?.hint ?? "", created_at: r.created_at, facility_name: r.facility_name,
-  }));
+  const rows = db.prepare("SELECT r.*, f.name AS facility_name FROM service_requests r JOIN facilities f ON f.id = r.facility_id WHERE r.participant_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 20").all(pid) as { id: string; category: string; text: string; status: string; finding_id: string | null; created_at: string; facility_name: string }[];
+  return rows.map((r) => {
+    const status = deriveReportStatus(db, r);
+    return {
+      id: r.id, category: r.category, category_label: REPORT_CATEGORIES.find((c) => c.id === r.category)?.label ?? r.category, text: r.text, status,
+      status_label: REPORT_STATUS_LABEL[status]?.label ?? status, hint: REPORT_STATUS_LABEL[status]?.hint ?? "", created_at: r.created_at, facility_name: r.facility_name,
+    };
+  });
 }
 
 /* ---------- Bantuan ---------- */

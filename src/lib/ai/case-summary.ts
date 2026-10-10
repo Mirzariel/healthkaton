@@ -15,15 +15,8 @@ import { simulatedProvider } from "./simulator";
 /* Ringkasan bukti kasus (draf). Setiap pernyataan WAJIB menautkan ke sumber (refs) yang ada pada data masukan.
    Output adalah draf bantu bagi petugas: tidak menyimpulkan penyebab, tidak memutus, dan dapat dikoreksi/ditandai ditinjau. */
 
-export const SUMMARY_KINDS = ["participant_fact", "supporting", "contradicting", "missing", "suggestion"] as const;
-export type SummaryKind = (typeof SUMMARY_KINDS)[number];
-export const SUMMARY_KIND_LABEL: Record<SummaryKind, string> = {
-  participant_fact: "Fakta dari peserta",
-  supporting: "Dokumen/bukti yang mendukung",
-  contradicting: "Kontradiksi",
-  missing: "Informasi yang belum ada",
-  suggestion: "Saran langkah",
-};
+import { SUMMARY_KINDS, SUMMARY_KIND_LABEL, type SummaryKind } from "./summary-kinds";
+export { SUMMARY_KINDS, SUMMARY_KIND_LABEL, type SummaryKind };
 
 export interface CaseSummaryInput {
   finding_id: string;

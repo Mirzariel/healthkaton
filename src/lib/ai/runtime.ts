@@ -101,7 +101,8 @@ interface Plan {
 function plan(db: Database.Database, inp: InterviewInput, ctx: RunContext): Plan {
   const cfg = ctx.cfg ?? getActiveConfig(db);
   const req = newRequest(db, inp);
-  let mode: "live" | "simulated" = ctx.forceMode ?? resolveMode(cfg);
+  // 'live' bila diminta/auto DAN penyedia siap (kunci server, atau penyedia pengganti pada tes); selain itu simulasi berlabel.
+  let mode: "live" | "simulated" = ctx.forceMode ?? (cfg.mode_pref === "simulated" ? "simulated" : liveReady() ? "live" : resolveMode(cfg));
   let blocked: string | null = null;
   if (ctx.forceMode === undefined && cfg.mode_pref === "live" && !liveReady()) { mode = "simulated"; blocked = "Mode 'langsung' dipilih tetapi kunci penyedia tidak ada di server."; }
   if (ctx.forceMode === "live" && !liveReady()) { mode = "simulated"; blocked = "Mode 'langsung' diminta tetapi kunci penyedia tidak ada di server."; }

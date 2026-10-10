@@ -82,4 +82,3 @@ export function logInvocation(db: Database.Database, l: InvocationLog): string {
 }
 
 export const requestFingerprint = (req: unknown) => sha256(JSON.stringify(req)).slice(0, 12);
-export const parseJson = json;

@@ -191,8 +191,11 @@ export interface SessionView {
   facts: { id: string; slot: string; slot_label: string; value: string; value_label: string; indicator_title: string | null; origin: FactRow["origin"]; turn_id: string | null; corrected: boolean; editable: { value: string; label: string }[] }[];
   progress: { answered: number; required: number; unknown: number; unresolved: number; may_grow: boolean; asked: number };
   outcome: { status: SessionStatus; end_reason: string | null; lines: string[]; reports_created: number } | null;
+  help_open: boolean;
   notice: string | null;
 }
+
+const REPORT_CATEGORY: Record<string, string> = { obat: "obat", biaya: "biaya", visit_dokter: "dokter", kendala_belum_selesai: "lainnya" };
 
 const END_REASON_LABEL: Record<string, string> = {
   coverage_complete: "Semua pertanyaan yang relevan sudah terjawab.",
@@ -250,6 +253,7 @@ function buildView(db: Database.Database, s: SessionRow, notice: string | null =
     facts,
     progress: { ...pick(agenda.coverage), asked: L.turns.filter((t) => t.status === "answered").length },
     outcome: ended ? { status: s.status, end_reason: s.end_reason, lines: [END_REASON_LABEL[s.end_reason ?? ""] ?? ""].filter(Boolean), reports_created: extra.reportsCreated ?? countT4(db, s.id) } : null,
+    help_open: !!db.prepare("SELECT 1 FROM help_requests WHERE session_id = ? AND status = 'open' LIMIT 1").get(s.id),
     notice,
   };
 }
@@ -389,7 +393,13 @@ function finish(db: Database.Database, L: Loaded, agenda: Agenda | null, status:
         limit_text: "Satu laporan peserta bukan bukti. Perlu dicocokkan dengan catatan faskes; jawaban 'tidak ingat' tidak pernah dihitung sebagai sinyal.",
         signals: [{ key: `laporan_${h.category}`, label: h.note, weight: 40 }], score: 40, dedupe_key: `T4:${s.id}:${h.indicator_id}:${h.category}`, category: h.category, help,
       });
-      if (r.created) reports++;
+      if (r.created) {
+        reports++;
+        // peserta melacak laporan yang timbul dari survei di tempat yang sama dengan laporan buatannya sendiri
+        db.prepare("INSERT OR IGNORE INTO service_requests (id, participant_id, episode_id, facility_id, category, text, status, case_id, finding_id, respondent_role, created_at, idem_key) VALUES (?,?,?,?,?,?,'received',?,?,?,?,?)").run(
+          nextId(db, "SRQ"), s.participant_id, s.episode_id, s.facility_id, REPORT_CATEGORY[h.category] ?? "lainnya", `Dari survei: ${h.note.replace(/^Peserta (melaporkan|menyatakan) /, "")}`, r.caseId, r.findingId, s.respondent_role, nowPrecise(), `survey:${s.id}:${h.indicator_id}:${h.category}`,
+        );
+      }
     }
   }
   if (s.invitation_id) db.prepare("UPDATE invitations SET status = ? WHERE id = ?").run(status === "expired" || status === "cancelled" ? status : "answered", s.invitation_id);

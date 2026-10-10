@@ -82,7 +82,7 @@ Mengganti sumber = mengganti implementasi di `adapters/index.ts`. Skema domain d
 ## 6. AI v1 (`src/lib/ai/contract.ts`)
 
 - Skema `AI_SCHEMA_VERSION = "1.0"`; `interviewRequestZ` dan `interviewOutputZ` strict (field tak dikenal ditolak). Keluaran AI divalidasi sebelum dipakai; gagal → pakai fallback deterministik dan catat mode `fallback`.
-- `AIProviderAdapter { kind, provider, interview(), summarizeCase?(), testConnection() }`. Dua implementasi dibuat modul survei-ai: simulator deterministik (selalu berlabel SIMULASI) dan penyedia langsung (aktif hanya bila `ANTHROPIC_API_KEY` ada; `liveAvailable()`). **Penyedia langsung belum ditulis di fondasi.**
+- `AIProviderAdapter { kind, provider, interview(), summarizeCase?(), testConnection() }`. Dua implementasi dibuat modul survei-ai: simulator deterministik (selalu berlabel SIMULASI) dan penyedia langsung (aktif hanya bila `ANTHROPIC_API_KEY` ada; `liveAvailable()`). Penyedia langsung dan simulator kini ada; lihat `docs/SURVEI-AI.md` (termasuk catatan bahwa penyedia langsung belum diuji terhadap API sungguhan).
 - Setiap panggilan dicatat lewat `logInvocation` (mode, model, versi prompt, sidik permintaan, galat). Mode ditampilkan lewat `AiModeBadge`.
 - AI hanya memilih dari kandidat yang diberikan `computeAgenda` (bank yang sudah ditinjau); AI tidak membuat butir, tidak menyimpulkan penyebab, tidak memutuskan.
 
@@ -106,7 +106,8 @@ Peran: `peserta, pendamping, faskes, verifikator, reviewer, auditor, admin`. Mat
 | `SEHATI_SESSION_SECRET` | Kunci tanda tangan cookie demo (ganti di luar demo) |
 | `SEHATI_DEMO_ROLES` | `0` mematikan pemilih peran dan atur-ulang data |
 | `SEHATI_ANCHOR_SECRET` | Bila ada, jangkar audit diberi MAC |
-| `ANTHROPIC_API_KEY` | Mengaktifkan penyedia AI langsung (setelah adapter ditulis) |
+| `ANTHROPIC_API_KEY` | Mengaktifkan penyedia AI langsung |
+| `SEHATI_AI_MODEL` | Model bawaan konfigurasi AI awal (bawaan `claude-sonnet-5-5`) |
 
 ## 10. Yang belum ada di fondasi (disengaja)
 

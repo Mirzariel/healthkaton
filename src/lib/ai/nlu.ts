@@ -160,7 +160,7 @@ export function interpret(req: Pick<InterviewRequest, "last_turn" | "allowed_slo
     // obat: urutan penting (sebagian > tidak > semua), instruksi membeli ≠ telah membeli
     if (allowed.has("medication_receipt")) {
       if (/\b(sebagian|setengah|separuh|sisanya|ada yang (belum|kurang|tidak)|belum lengkap|tidak lengkap|kurang lengkap)\b/.test(c)) put("medication_receipt", "partial", raw, hedged);
-      else if (/\b(belum|tidak)\s+(menerima|terima|dapat|dikasih|diberi|diberikan|kebagian|diserahkan)|tidak ada obat|obat (belum|tidak) (ada|diberikan|diserahkan)|belum dikasih/.test(c)) put("medication_receipt", "none", raw, hedged);
+      else if (/\b(belum|tidak)\s+((saya|kami|aku)\s+)?(menerima|terima|dapat|dikasih|diberi|diberikan|kebagian|diserahkan)|tidak ada obat|obat (belum|tidak) (ada|diberikan|diserahkan)|belum dikasih/.test(c)) put("medication_receipt", "none", raw, hedged);
       else if (/\b(semua|seluruh|lengkap)\b.*\b(obat|diterima|dapat|dikasih|terima)\b|\bobat\b.*\b(semua|lengkap)\b|\bsudah (terima|menerima|dapat|diterima|dikasih)\b.*\bobat\b|\bobat\b.*\bsudah (terima|diterima|dapat|dikasih)\b/.test(c) && !/\b(sebagian|belum|kurang)\b/.test(c)) put("medication_receipt", "full", raw, hedged);
     }
     const directive = DIRECTIVE.test(c) && BUY.test(c);
