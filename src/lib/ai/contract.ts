@@ -28,7 +28,8 @@ export const interviewRequestZ = z.strictObject({
   episode_context: z.record(z.string(), z.union([z.string(), z.boolean(), z.number(), z.null()])),
   confirmed_facts: z.array(z.strictObject({ slot: z.string(), value: z.string(), subject: z.string().nullable().optional() })),
   asked_question_ids: z.array(z.string()),
-  last_turn: z.strictObject({ turn_id: z.string(), question_id: z.string(), question_text: z.string(), answer_text: z.string() }),
+  /** `target_slot` ditambahkan oleh modul survei-ai (opsional): slot yang diukur pertanyaan terakhir, agar jawaban singkat ("ya", "lupa") dapat dikaitkan dengan slot yang benar. */
+  last_turn: z.strictObject({ turn_id: z.string(), question_id: z.string(), question_text: z.string(), answer_text: z.string(), target_slot: z.string().optional() }),
   candidate_questions: z.array(z.strictObject({ id: z.string(), target_slot: z.string(), text: z.string() })),
   /** Slot yang boleh diusulkan beserta nilai sahnya (server menentukan; model tidak boleh menambah). */
   allowed_slots: z.array(z.strictObject({ slot: z.string(), values: z.array(z.string()) })),

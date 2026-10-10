@@ -23,7 +23,7 @@ export const CONSOLE_NAV: NavItem[] = [
   { href: "/console/pending", label: "Pemilahan pending", group: "Kerja", roles: ["verifikator", "reviewer", "admin"], ready: false, owner: "pending-kartu-bayar-impor" },
   { href: "/console/import", label: "Impor data", group: "Kerja", roles: ["admin"], ready: false, owner: "pending-kartu-bayar-impor" },
   { href: "/console/standards", label: "Registry standar", group: "Standar dan AI", roles: INTERNAL, ready: true, owner: "fondasi" },
-  { href: "/console/ai", label: "Dasbor AI", group: "Standar dan AI", roles: ["verifikator", "reviewer", "auditor", "admin"], ready: false, owner: "survei-ai", note: "Riwayat sesi, jejak turn, sumber standar, operasional model, konfigurasi, sandbox. Evaluasi: dasbor-evaluasi." },
+  { href: "/console/ai", label: "Dasbor AI", group: "Standar dan AI", roles: ["verifikator", "reviewer", "auditor", "admin"], ready: true, owner: "survei-ai", note: "Riwayat sesi, jejak turn, sumber standar, operasional model, konfigurasi, sandbox. Evaluasi: dasbor-evaluasi." },
   { href: "/console/ai/evaluation", label: "Evaluasi AI", group: "Standar dan AI", roles: ["reviewer", "auditor", "admin"], ready: false, owner: "dasbor-evaluasi" },
   { href: "/console/quality", label: "Dasbor mutu", group: "Mutu dan keuangan", roles: INTERNAL, ready: false, owner: "dasbor-evaluasi" },
   { href: "/console/cards", label: "Kartu pembinaan faskes", group: "Mutu dan keuangan", roles: INTERNAL, ready: false, owner: "pending-kartu-bayar-impor" },
@@ -32,7 +32,7 @@ export const CONSOLE_NAV: NavItem[] = [
 ];
 
 export const SURFACES = [
-  { href: "/m", label: "Aplikasi peserta", owner: "survei-ai", ready: false },
+  { href: "/m", label: "Aplikasi peserta", owner: "survei-ai", ready: true },
   { href: "/faskes", label: "Portal faskes", owner: "kasus-faskes", ready: false },
   { href: "/console", label: "Konsol petugas", owner: "fondasi", ready: true },
 ] as const;
