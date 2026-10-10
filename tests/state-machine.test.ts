@@ -42,7 +42,7 @@ describe("sinyal → temuan → kasus (seed)", () => {
   });
   it("sinyal menangkap pola yang disuntikkan dan tidak menandai episode bersih", () => {
     const truth = q<{ claim_id: string; label: string; mimics: string | null }>("SELECT claim_id, label, mimics FROM ground_truth");
-    const score = new Map(q<{ claim_id: string; s: number }>("SELECT claim_id, MAX(score) s FROM findings WHERE claim_id IS NOT NULL GROUP BY claim_id").map((x) => [x.claim_id, x.s]));
+    const score = new Map(q<{ claim_id: string; s: number }>("SELECT claim_id, MAX(score) s FROM findings WHERE claim_id IS NOT NULL AND source <> 'pending' GROUP BY claim_id").map((x) => [x.claim_id, x.s]));
     const positives = truth.filter((t) => ["t1_missing_doc", "t2_repeat", "t3_continuation"].includes(t.label));
     expect(positives.filter((t) => score.has(t.claim_id)).length / positives.length).toBeGreaterThanOrEqual(0.95);
     // padanan sah yang menyerupai pola: skor rata-rata lebih rendah daripada pola sebenarnya (T3), dan T2 sah tidak ditandai
@@ -51,7 +51,7 @@ describe("sinyal → temuan → kasus (seed)", () => {
     const t3Legit = avg(truth.filter((t) => t.label === "legit_lookalike" && t.mimics === "t3").map((t) => score.get(t.claim_id) ?? 0));
     expect(t3Legit).toBeLessThan(t3);
     expect(truth.filter((t) => t.label === "legit_lookalike" && t.mimics === "t2").every((t) => !score.has(t.claim_id))).toBe(true);
-    // tidak ada temuan di luar yang disuntikkan (episode bersih tidak ditandai)
+    // tidak ada temuan DETEKTOR di luar yang disuntikkan (episode bersih tidak ditandai). Temuan bersumber pending dibuat manusia, bukan detektor.
     const inScope = new Set(truth.map((t) => t.claim_id));
     expect([...score.keys()].filter((c) => !inScope.has(c))).toHaveLength(0);
   });

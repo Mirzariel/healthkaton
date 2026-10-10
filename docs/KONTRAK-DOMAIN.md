@@ -22,7 +22,7 @@ src/lib/
   clock.ts            jam tunggal (nowIso/nowPrecise/setNow); SEED_NOW = 2026-10-10T09:00
   idem.ts             idempotent(db, scope, key, fn) dan DomainError
   audit.ts            rantai hash, jangkar, verifikasi
-  db/{schema,index}   migrasi 001_core, 002_guards, 003_notifications; getDb/openDb/resetDb/nextId
+  db/{schema,index}   migrasi 001_core, 002_guards, 003_notifications, 004_pkbi (precheck_runs); getDb/openDb/resetDb/nextId
   auth/principal.ts   peran, matriks wewenang (CAPS), assertCan/assertFacility/assertParticipant, cookie sesi demo
   server.ts           getPrincipal(surface), run(), readJson, errorResponse
   domain/transitions  tabel transisi (satu sumber; trigger DB mengikuti, dijaga tes paritas)
@@ -42,7 +42,7 @@ Aturan folder untuk modul baru: `src/lib/<modul>/` (logika, menerima `db` sebaga
 |---|---|---|
 | survei-ai | `/m`, `/console/ai`, `/api/survey/*`, `/api/ai/*` | `src/lib/survey/service.ts`, `src/lib/ai/{simulator,live,runtime}.ts` |
 | kasus-faskes | `/console/cases`, `/console/assistant`, `/faskes/*` | UI di atas `cases/core.ts` |
-| pending-kartu-bayar-impor | `/console/pending`, `/cards`, `/payments`, `/import`, `/precheck` | `src/lib/{pending,cards,payments,import}/` |
+| pending-kartu-bayar-impor | `/console/pending`, `/cards`, `/payments`, `/import`, `/precheck`, `/documents` | `src/lib/{pending,cards,payments,import,precheck,evidence}/`; lihat `docs/MODUL-PENDING-KARTU-BAYAR-IMPOR.md` |
 | dasbor-evaluasi | `/console/quality`, `/console/ai/evaluation` | `src/lib/{quality,evaluation}/` |
 
 ## 3. Tabel kunci (skema `src/lib/db/schema.ts`)

@@ -4,6 +4,7 @@ import { seedStandards } from "../standards/registry";
 import { SEED_NOW, seedBase } from "./base";
 import { seedDomain } from "./domain";
 import { seedSurvey } from "../survey/seed";
+import { seedKeuangan } from "./keuangan";
 
 export { SEED_NOW };
 
@@ -37,6 +38,7 @@ export function seedAll(db: Database.Database) {
     const refs = seedBase(db);
     seedDomain(db, refs);
     seedSurvey(db, refs.hero);
+    seedKeuangan(db); // modul pending-kartu-bayar-impor
   } finally {
     setNow(null);
   }
