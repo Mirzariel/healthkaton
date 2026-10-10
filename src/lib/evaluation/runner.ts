@@ -105,7 +105,7 @@ export async function startEvaluation(db: Database.Database, p: Principal, raw: 
       let failedNote: string | null = null;
       const invoke = (def: EvalCaseDef) => (out: TurnOutcome, ctx: TurnContext) => {
         if (!out.log) return;
-        logInvocation(db, { operation: "eval_case", eval_run_id: runId, case_id: def.id, session_id: ctx.request.session_id, turn_id: ctx.request.last_turn.turn_id, prompt_version: cfg.prompt_version, schema_version: AI_SCHEMA_VERSION, config_version: cfg.version, ...out.log });
+        logInvocation(db, { operation: "eval_case", eval_run_id: runId, case_id: def.id, session_id: null, turn_id: ctx.request.last_turn.turn_id, prompt_version: cfg.prompt_version, schema_version: AI_SCHEMA_VERSION, config_version: cfg.version, ...out.log });
       };
       const exec = async (def: EvalCaseDef) => {
         if (Date.now() > deadline) { failedNote ??= "Melewati batas waktu run; hasil sebagian disimpan."; return; }
