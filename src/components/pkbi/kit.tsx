@@ -5,9 +5,9 @@ import { useState, type ReactNode } from "react";
 
 /* Perkakas kecil untuk formulir modul pending-kartu-bayar-impor. Semua aksi memanggil API server; server yang menegakkan hak akses. */
 
-export const btn = "rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-semibold hover:border-ink/40 disabled:cursor-not-allowed disabled:opacity-50";
-export const primary = "rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
-export const input = "w-full rounded-lg border border-line bg-card px-3 py-2 text-sm";
+export const btn = "btn btn-secondary btn-sm";
+export const primary = "btn btn-primary btn-sm";
+export const input = "field";
 
 export interface Result<T = Record<string, unknown>> { ok: boolean; error?: string; data?: T; issues?: string[] }
 
@@ -46,8 +46,8 @@ export function useAct() {
 export function Msg({ msg, ok }: { msg: string | null; ok?: string | null }) {
   return (
     <>
-      {msg && <p role="alert" className="mt-2 text-sm text-danger">{msg}</p>}
-      {ok && <p role="status" className="mt-2 text-sm text-ok">{ok}</p>}
+      {msg && <p role="alert" className="mt-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-[13px] text-danger">{msg}</p>}
+      {ok && <p role="status" className="mt-2 text-[13px] font-medium text-ok">{ok}</p>}
     </>
   );
 }
@@ -55,9 +55,9 @@ export function Msg({ msg, ok }: { msg: string | null; ok?: string | null }) {
 export function Field({ label, id, hint, children }: { label: string; id: string; hint?: string; children: ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-medium text-ink-soft">{label}</label>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+      <label htmlFor={id} className="field-label">{label}</label>
+      <div>{children}</div>
+      {hint && <p className="field-hint">{hint}</p>}
     </div>
   );
 }

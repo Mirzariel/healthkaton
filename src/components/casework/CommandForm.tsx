@@ -14,10 +14,10 @@ export type FieldDef =
   | { kind: "lines"; name: string; label: string; placeholder?: string; hint?: string; defaultValue?: string[]; rows?: number }
   | { kind: "checks"; name: string; label: string; options: Opt[]; defaultValue?: string[]; hint?: string };
 
-const input = "w-full rounded-lg border border-line bg-card px-3 py-2 text-sm";
-export const btnPrimary = "rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50";
-export const btnSecondary = "rounded-lg border border-line bg-card px-4 py-2 text-sm font-semibold hover:border-ink/40 disabled:opacity-50";
-export const btnDanger = "rounded-lg border border-danger/40 bg-danger-soft px-4 py-2 text-sm font-semibold text-danger disabled:opacity-50";
+const input = "field";
+export const btnPrimary = "btn btn-primary";
+export const btnSecondary = "btn btn-secondary";
+export const btnDanger = "btn btn-danger";
 
 export function CommandForm({
   command, endpoint = "/api/casework/commands", hidden = {}, fields = [], submit, tone = "primary", intro, confirm, compact = false, doneMessage, redirectTo,
@@ -77,22 +77,22 @@ export function CommandForm({
     }
   }
 
-  const cls = tone === "danger" ? btnDanger : tone === "secondary" ? btnSecondary : btnPrimary;
+  const cls = (tone === "danger" ? btnDanger : tone === "secondary" ? btnSecondary : btnPrimary) + (compact ? " btn-sm" : "");
   return (
-    <form key={version} onSubmit={onSubmit} className={compact ? "flex flex-wrap items-end gap-2" : "space-y-3"}>
-      {intro && <p className="text-sm text-ink-soft">{intro}</p>}
+    <form key={version} onSubmit={onSubmit} className={compact ? "flex flex-wrap items-end gap-2.5" : "space-y-4"}>
+      {intro && <p className="text-[13.5px] leading-relaxed text-ink-soft">{intro}</p>}
       {fields.map((f) => {
         const id = `${uid}-${f.name}`;
-        const lab = <label htmlFor={id} className="block text-xs font-medium text-ink-soft">{f.label}{"required" in f && f.required ? <span aria-hidden className="text-danger"> *</span> : null}</label>;
-        const hint = "hint" in f && f.hint ? <p className="mt-0.5 text-xs text-muted">{f.hint}</p> : null;
+        const lab = <label htmlFor={id} className="field-label">{f.label}{"required" in f && f.required ? <span aria-hidden className="text-danger"> *</span> : null}</label>;
+        const hint = "hint" in f && f.hint ? <p className="field-hint">{f.hint}</p> : null;
         if (f.kind === "textarea") return <div key={f.name} className={compact ? "min-w-48 flex-1" : ""}>{lab}<textarea id={id} name={f.name} rows={f.rows ?? 3} required={f.required} defaultValue={f.defaultValue == null ? "" : String(f.defaultValue)} placeholder={f.placeholder} className={input} />{hint}</div>;
         if (f.kind === "lines") return <div key={f.name}>{lab}<textarea id={id} name={f.name} rows={f.rows ?? 3} defaultValue={(f.defaultValue ?? []).join("\n")} placeholder={f.placeholder ?? "Satu butir per baris"} className={input} />{hint}</div>;
         if (f.kind === "select") return <div key={f.name} className={compact ? "min-w-40" : ""}>{lab}<select id={id} name={f.name} required={f.required} defaultValue={f.defaultValue} className={input}>{f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>{hint}</div>;
         if (f.kind === "boolean") return <div key={f.name}>{lab}<select id={id} name={f.name} defaultValue={String(f.defaultValue ?? true)} className={input}><option value="true">{f.yes}</option><option value="false">{f.no}</option></select>{hint}</div>;
         if (f.kind === "checks") return (
           <fieldset key={f.name}>
-            <legend className="text-xs font-medium text-ink-soft">{f.label}</legend>
-            <div className="mt-1 flex flex-wrap gap-3">{f.options.map((o) => <label key={o.value} className="flex items-center gap-1.5 text-sm"><input type="checkbox" name={f.name} value={o.value} defaultChecked={f.defaultValue?.includes(o.value)} />{o.label}</label>)}</div>
+            <legend className="field-label">{f.label}</legend>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2">{f.options.map((o) => <label key={o.value} className="flex items-center gap-2 text-[14px]"><input type="checkbox" name={f.name} value={o.value} defaultChecked={f.defaultValue?.includes(o.value)} />{o.label}</label>)}</div>
             {hint}
           </fieldset>
         );
@@ -100,9 +100,9 @@ export function CommandForm({
       })}
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={busy} className={cls}>{busy ? "Memproses…" : submit}</button>
-        {ok && <span role="status" className="text-sm text-ok">{ok}</span>}
+        {ok && <span role="status" className="text-[13px] font-medium text-ok">{ok}</span>}
       </div>
-      {err && <p role="alert" className="basis-full text-sm text-danger">{err}</p>}
+      {err && <p role="alert" className="basis-full rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-[13px] text-danger">{err}</p>}
     </form>
   );
 }

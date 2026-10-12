@@ -1,44 +1,108 @@
 import Link from "next/link";
-import { Tag } from "@/components/casework/parts";
-import { Card, EmptyState, Forbidden, PageHeader, ProofBadge, SectionTitle, SimNotice, Stat } from "@/components/ui";
+import { ClarificationItem, FindingItem } from "@/components/faskes/parts";
+import { IconCheckCircle, IconChevronRight } from "@/components/icons";
+import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, StatusPill, Stat } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
-import { facilityHome } from "@/lib/casework/queries";
+import { facilityActions, facilityClarifications, facilityHome } from "@/lib/casework/queries";
 import { nowIso } from "@/lib/clock";
-import { fmtDate } from "@/lib/dates";
+import { dayDiff, fmtDate } from "@/lib/dates";
 import { getDb } from "@/lib/db";
+import { ACTION_LABEL } from "@/lib/labels";
 import { getPrincipal } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
+const MAX_TODO = 6;
+
 export default async function FaskesHome() {
   const me = await getPrincipal("faskes");
   if (!can(me, "facility.respond")) return <Forbidden need="facility.respond" />;
-  const h = facilityHome(getDb(), me, nowIso().slice(0, 10));
+  const db = getDb();
+  const now = nowIso();
+  const today = now.slice(0, 10);
+  const h = facilityHome(db, me, today);
+  const openClar = facilityClarifications(db, me).filter((c) => c.status === "sent" || c.status === "lapsed");
+  const openActions = facilityActions(db, me).filter((a) => a.status === "open" || a.status === "in_progress");
+
+  // Urutan kepentingan: permintaan klarifikasi yang masih berjalan (tenggat terdekat dulu), tindakan lewat target,
+  // permintaan yang lewat tenggat (tetap dapat dijawab), lalu tindakan yang belum lewat target.
+  type Todo = { key: string; rank: number; sort: string; node: React.ReactNode };
+  const todo: Todo[] = [
+    ...openClar.map((c) => ({
+      key: c.id, rank: c.status === "sent" ? 0 : 2, sort: c.due_at,
+      node: <ClarificationItem c={c} now={now} compact />,
+    })),
+    ...openActions.map((a) => {
+      const late = !!a.target_date && a.target_date.slice(0, 10) < today;
+      const diff = a.target_date ? dayDiff(today, a.target_date) : null;
+      return {
+        key: a.id, rank: late ? 1 : 3, sort: a.target_date ?? "9999",
+        node: (
+          <Link href="/faskes/tindakan" className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-subtle/70">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <span className="font-mono text-[12px] text-muted">{a.id}</span>
+                <StatusPill tone={late ? "danger" : "warn"}>{ACTION_LABEL[a.status as keyof typeof ACTION_LABEL]}</StatusPill>
+              </div>
+              <p className="mt-1.5 text-[14px] font-semibold leading-snug text-ink">{a.description}</p>
+              <p className="mt-1.5 text-[12.5px] text-muted">
+                Target {fmtDate(a.target_date)}
+                {diff !== null && <span className={late ? "ml-2 font-medium text-danger" : "ml-2"}>{late ? `lewat ${-diff} hari` : diff === 0 ? "hari ini" : `${diff} hari lagi`}</span>}
+              </p>
+            </div>
+            <IconChevronRight size={16} className="mt-1 shrink-0 text-line-strong transition-colors group-hover:text-ink-soft" />
+          </Link>
+        ),
+      };
+    }),
+  ].sort((a, b) => a.rank - b.rank || a.sort.localeCompare(b.sort));
+  const shown = todo.slice(0, MAX_TODO);
+
+  const FIRST_FINDINGS = 5;
   return (
     <>
-      <PageHeader title="Ringkasan faskes" eyebrow="Portal faskes" purpose="Tempat menjawab permintaan klarifikasi, melampirkan dokumen, mengajukan bantahan, dan menyusun tindakan perbaikan. Sebuah temuan baru tampak di sini setelah petugas meminta klarifikasi atau tindakan perbaikan." />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Menunggu jawaban Anda" value={h.waiting} tone={h.waiting ? "warn" : "default"} href="/faskes/klarifikasi" hint="Hak jawab Anda berjalan" />
-        <Stat label="Lewat tenggat, masih dapat dijawab" value={h.lapsed} href="/faskes/klarifikasi" hint="Jawaban terlambat tetap diterima" />
-        <Stat label="Bantahan menunggu tanggapan" value={h.disputesOpen} href="/faskes/bantahan" />
-        <Stat label="Tindakan perbaikan berjalan" value={h.actionsOpen} href="/faskes/tindakan" hint={h.actionsOverdue ? `${h.actionsOverdue} lewat target` : undefined} tone={h.actionsOverdue ? "danger" : "default"} />
+      <PageHeader title="Ringkasan faskes" purpose="Klarifikasi, bantahan, dan tindakan perbaikan untuk faskes Anda." />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Menunggu jawaban" value={h.waiting} tone={h.waiting ? "warn" : "default"} href="/faskes/klarifikasi" />
+        <Stat label="Lewat tenggat" value={h.lapsed} href="/faskes/klarifikasi" hint="Masih dapat dijawab" />
+        <Stat label="Bantahan menunggu" value={h.disputesOpen} href="/faskes/bantahan" />
+        <Stat label="Tindakan berjalan" value={h.actionsOpen} href="/faskes/tindakan" hint={h.actionsOverdue ? `${h.actionsOverdue} lewat target` : undefined} tone={h.actionsOverdue ? "danger" : "default"} />
       </div>
-      <section className="mt-8 space-y-3">
-        <SectionTitle title="Temuan yang melibatkan faskes Anda" hint="Status pembuktian ditentukan petugas dan reviewer, bukan oleh sistem. Anda dapat membantah temuan kapan saja." />
-        <Card className="divide-y divide-line">
-          {h.findings.length === 0 && <EmptyState title="Belum ada temuan yang melibatkan faskes Anda">Tidak ada permintaan klarifikasi atau tindakan perbaikan saat ini.</EmptyState>}
-          {h.findings.map((f) => (
-            <div key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
-              <div className="min-w-0">
-                <Link href={`/faskes/temuan/${f.id}`} className="font-semibold underline-offset-4 hover:underline">{f.title}</Link>
-                <p className="text-xs text-muted"><span className="font-mono">{f.id}</span> · {f.type_label}{f.claim_no ? ` · ${f.claim_no}` : ""} · perawatan {fmtDate(f.admit_date)} · diperbarui {fmtDate(f.updated_at)}</p>
-              </div>
-              <div className="flex items-center gap-2">{f.open_clarification_ids.length > 0 && <Tag t="warn">Perlu jawaban</Tag>}{f.has_open_dispute && <Tag t="info">Bantahan dikirim</Tag>}<ProofBadge status={f.proof_status} /></div>
-            </div>
-          ))}
+
+      <Section className="mt-9">
+        <SectionTitle title="Perlu Anda tanggapi" hint="Jawaban terlambat tetap diterima.">
+          {todo.length > MAX_TODO && <Link href="/faskes/klarifikasi" className="link text-[13px]">Lihat semua</Link>}
+        </SectionTitle>
+        <Card elevated className="divide-y divide-line overflow-hidden">
+          {shown.length === 0 ? (
+            <EmptyState title="Tidak ada yang perlu ditanggapi" icon={<IconCheckCircle size={18} />} />
+          ) : (
+            shown.map((t) => <div key={t.key}>{t.node}</div>)
+          )}
         </Card>
-        <SimNotice>Status "Sinyal" berarti petugas belum menilai apa pun. Status "Tidak dapat dibuktikan" berarti bukti belum cukup, bukan bahwa layanan tidak dilakukan.</SimNotice>
-      </section>
+      </Section>
+
+      <Section>
+        <SectionTitle title="Temuan faskes Anda" hint="Status ditentukan petugas dan reviewer, bukan sistem. Anda dapat membantah kapan saja." />
+        {h.findings.length === 0 ? (
+          <div className="panel-inset"><EmptyState title="Belum ada temuan" /></div>
+        ) : (
+          <div className="panel-inset divide-y divide-line overflow-hidden">
+            {h.findings.slice(0, FIRST_FINDINGS).map((f) => <FindingItem key={f.id} f={f} />)}
+            {h.findings.length > FIRST_FINDINGS && (
+              <details className="group">
+                <summary className="cursor-pointer select-none px-4 py-3 text-[13.5px] font-medium text-brand-ink hover:bg-card/60">
+                  <span className="group-open:hidden">Tampilkan {h.findings.length - FIRST_FINDINGS} temuan lainnya</span>
+                  <span className="hidden group-open:inline">Sembunyikan temuan lainnya</span>
+                </summary>
+                <div className="divide-y divide-line border-t border-line">{h.findings.slice(FIRST_FINDINGS).map((f) => <FindingItem key={f.id} f={f} />)}</div>
+              </details>
+            )}
+          </div>
+        )}
+        <p className="text-[12.5px] text-muted">&quot;Tidak dapat dibuktikan&quot; berarti bukti belum cukup, bukan layanan tidak dilakukan.</p>
+      </Section>
     </>
   );
 }

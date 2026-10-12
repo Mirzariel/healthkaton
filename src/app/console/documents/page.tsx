@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UploadForm } from "@/components/pkbi/EvidenceForms";
-import { Card, EmptyState, Forbidden, PageHeader, Pill, SectionTitle, SimNotice } from "@/components/ui";
+import { FilterField, FilterForm, RecordId, rowLink } from "@/components/console/Parts";
+import { Card, EmptyState, Forbidden, PageHeader, Pill, SectionTitle, SimNotice, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
 import { fmtDateTime } from "@/lib/dates";
@@ -25,40 +26,40 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   const waiting = docs.filter((d) => d.proposed > 0).length;
   return (
     <>
-      <PageHeader title="Dokumen bukti" eyebrow="Kerja" purpose="Unggah dokumen pendukung klaim. PDF yang berlapis teks dibaca sungguhan; dokumen pindaian atau gambar membutuhkan transkripsi manual kecuali mesin OCR terpasang." />
-      <SimNotice>Teks hasil ekstraksi atau ketikan selalu berstatus <strong>usulan</strong> sampai dikonfirmasi peninjau. SEHATI tidak membuat hasil OCR palsu: bila mesin OCR tidak ada, dokumen ditandai “perlu transkripsi manual”. Berkas yang diterima: PDF, PNG, JPEG, maks. {MAX_UPLOAD_BYTES / 1048576} MB; isi berkas diperiksa, bukan hanya ekstensinya.</SimNotice>
+      <PageHeader title="Dokumen bukti" eyebrow="Kerja" purpose="Unggah dokumen pendukung klaim dan telaah teks hasil ekstraksinya." />
+      <SimNotice>Teks hasil ekstraksi atau ketikan berstatus <strong>usulan</strong> sampai dikonfirmasi peninjau. Tanpa mesin OCR, pindaian ditandai “perlu transkripsi manual”. PDF, PNG, JPEG, maks. {MAX_UPLOAD_BYTES / 1048576} MB.</SimNotice>
       {can(me, "evidence.upload") && (
-        <section className="mt-6 space-y-3">
+        <section className="mt-8 space-y-3">
           <SectionTitle title="Unggah dokumen" />
-          <Card elevated className="p-4"><UploadForm episodes={episodes} fixedEpisode={episode && episodes.some((e) => e.value === episode) ? episode : undefined} /></Card>
+          <Card elevated className="p-5"><UploadForm episodes={episodes} fixedEpisode={episode && episodes.some((e) => e.value === episode) ? episode : undefined} /></Card>
         </section>
       )}
-      <section className="mt-8 space-y-3">
+      <section className="mt-10 space-y-3">
         <SectionTitle title="Daftar dokumen" hint={`${docs.length} dokumen${waiting ? ` · ${waiting} menunggu tinjauan` : ""}${episode ? ` · episode ${episode}` : ""}`} />
-        <form method="get" className="no-print flex flex-wrap gap-2" aria-label="Filter dokumen">
+        <FilterForm label="Filter dokumen" submit="Cari" cols="sm:grid-cols-[12rem_minmax(0,1fr)_auto]" resetHref={status || one(sp.q) ? (episode ? `/console/documents?episode=${episode}` : "/console/documents") : undefined}>
           {episode && <input type="hidden" name="episode" value={episode} />}
-          <select name="status" defaultValue={status} aria-label="Status" className="rounded-lg border border-line bg-card px-2 py-2 text-sm"><option value="">Semua status</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
-          <input name="q" defaultValue={one(sp.q)} placeholder="Nama berkas" aria-label="Nama berkas" className="rounded-lg border border-line bg-card px-2 py-2 text-sm" />
-          <button className="rounded-lg bg-brand px-3 text-sm font-semibold text-white">Cari</button>
-        </form>
-        <Card className="overflow-x-auto">
-          {docs.length === 0 ? <EmptyState title="Belum ada dokumen" /> : (
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted"><tr><th className="p-3">Dokumen</th><th className="p-3">Episode</th><th className="p-3">Status</th><th className="p-3">Usulan</th><th className="p-3">Diunggah</th></tr></thead>
-              <tbody className="divide-y divide-line">
+          <FilterField label="Status" span="col-span-2 sm:col-span-1"><select name="status" defaultValue={status} className="field"><option value="">Semua status</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></FilterField>
+          <FilterField label="Nama berkas" span="col-span-2 sm:col-span-1"><input name="q" defaultValue={one(sp.q)} placeholder="Nama berkas" className="field" /></FilterField>
+        </FilterForm>
+        <TableCard label="Daftar dokumen">
+          {docs.length === 0 ? <EmptyState title="Belum ada dokumen">Unggah dokumen di atas, atau ubah filter bila daftar ini disaring.</EmptyState> : (
+            <table className="w-full min-w-[28rem] text-left text-[13.5px]">
+              <caption className="sr-only">Daftar dokumen bukti</caption>
+              <thead><tr><th className="px-4 py-2.5">Dokumen</th><th className="hidden px-4 py-2.5 md:table-cell">Episode</th><th className="hidden px-4 py-2.5 sm:table-cell">Status</th><th className="hidden px-4 py-2.5 text-right sm:table-cell">Usulan</th><th className="hidden px-4 py-2.5 lg:table-cell">Diunggah</th></tr></thead>
+              <tbody>
                 {docs.map((d) => (
                   <tr key={d.id} className="align-top">
-                    <td className="p-3"><Link className="font-semibold underline-offset-4 hover:underline" href={`/console/documents/${d.id}`}>{d.name}</Link><p className="font-mono text-[11px] text-muted">{d.id} · {(d.size / 1024).toFixed(0)} KB · {d.mime}</p></td>
-                    <td className="p-3 font-mono text-xs">{d.episode_id ?? "-"}</td>
-                    <td className="p-3"><Pill className={TONE_CLASS[STATUS_LABEL[d.processing_status].tone]} title={STATUS_LABEL[d.processing_status].hint}>{STATUS_LABEL[d.processing_status].label}</Pill></td>
-                    <td className="p-3 tabular-nums">{d.proposed}</td>
-                    <td className="p-3 text-ink-soft">{fmtDateTime(d.created_at)}</td>
+                    <td className="px-4 py-3"><Link className={`${rowLink} break-words`} href={`/console/documents/${d.id}`}>{d.name}</Link><p className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted"><RecordId>{d.id}</RecordId><span>{(d.size / 1024).toFixed(0)} KB</span><span>{d.mime}</span></p><p className="mt-1.5 sm:hidden"><Pill className={TONE_CLASS[STATUS_LABEL[d.processing_status].tone]}>{STATUS_LABEL[d.processing_status].label}</Pill></p></td>
+                    <td className="hidden px-4 py-3 md:table-cell"><RecordId className="text-ink-soft">{d.episode_id ?? "-"}</RecordId></td>
+                    <td className="hidden px-4 py-3 sm:table-cell"><Pill className={TONE_CLASS[STATUS_LABEL[d.processing_status].tone]} title={STATUS_LABEL[d.processing_status].hint}>{STATUS_LABEL[d.processing_status].label}</Pill></td>
+                    <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{d.proposed}</td>
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-ink-soft lg:table-cell">{fmtDateTime(d.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </Card>
+        </TableCard>
       </section>
     </>
   );

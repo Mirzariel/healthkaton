@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-const field = "w-full rounded-lg border border-line bg-card px-3 py-2 text-sm";
+import { Notice } from "@/components/ui";
 
 /** Formulir menjalankan evaluasi. Kunci idempoten dibuat per pengiriman agar klik ganda tidak membuat dua run. */
 export function RunForm({ liveReady, liveNote }: { liveReady: boolean; liveNote: string }) {
@@ -42,33 +41,35 @@ export function RunForm({ liveReady, liveNote }: { liveReady: boolean; liveNote:
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4 p-4 sm:grid-cols-3" aria-describedby="runform-help">
-      <div>
-        <label htmlFor="ev-split" className="mb-1 block text-xs font-medium text-ink-soft">Bagian dataset</label>
-        <select id="ev-split" value={split} onChange={(e) => setSplit(e.target.value)} className={field}>
-          <option value="dev">Dev (untuk memperbaiki sistem)</option>
-          <option value="heldout">Heldout (jangan dipakai untuk menyetel)</option>
-          <option value="all">Semua</option>
-        </select>
+    <form onSubmit={submit} className="space-y-4 px-5 py-4" aria-describedby="runform-help">
+      <div className="grid gap-x-5 gap-y-4 md:grid-cols-3">
+        <div>
+          <label htmlFor="ev-split" className="field-label">Bagian dataset</label>
+          <select id="ev-split" value={split} onChange={(e) => setSplit(e.target.value)} className="field">
+            <option value="dev">Dev (untuk memperbaiki sistem)</option>
+            <option value="heldout">Heldout (jangan dipakai untuk menyetel)</option>
+            <option value="all">Semua</option>
+          </select>
+        </div>
+        <fieldset>
+          <legend className="field-label">Sistem yang dibandingkan</legend>
+          <label className="flex min-h-9 items-center gap-2.5 text-[14px] text-ink"><input type="checkbox" checked={systems.includes("baseline_rules")} onChange={() => toggle("baseline_rules")} /> Baseline aturan</label>
+          <label className="flex min-h-9 items-center gap-2.5 text-[14px] text-ink"><input type="checkbox" checked={systems.includes("rules_plus_llm")} onChange={() => toggle("rules_plus_llm")} /> Aturan + penyedia AI</label>
+        </fieldset>
+        <div>
+          <label htmlFor="ev-provider" className="field-label">Penyedia AI</label>
+          <select id="ev-provider" value={provider} onChange={(e) => setProvider(e.target.value)} className="field" disabled={!systems.includes("rules_plus_llm")}>
+            <option value="simulated">Simulator referensi (bukan model AI)</option>
+            <option value="auto">Otomatis (langsung bila tersedia)</option>
+            <option value="live" disabled={!liveReady}>Model langsung{liveReady ? "" : " (tidak tersedia)"}</option>
+          </select>
+        </div>
       </div>
-      <fieldset>
-        <legend className="mb-1 block text-xs font-medium text-ink-soft">Sistem yang dibandingkan</legend>
-        <label className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" checked={systems.includes("baseline_rules")} onChange={() => toggle("baseline_rules")} /> Baseline aturan</label>
-        <label className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" checked={systems.includes("rules_plus_llm")} onChange={() => toggle("rules_plus_llm")} /> Aturan + penyedia AI</label>
-      </fieldset>
-      <div>
-        <label htmlFor="ev-provider" className="mb-1 block text-xs font-medium text-ink-soft">Penyedia AI</label>
-        <select id="ev-provider" value={provider} onChange={(e) => setProvider(e.target.value)} className={field} disabled={!systems.includes("rules_plus_llm")}>
-          <option value="simulated">Simulator referensi (bukan model AI)</option>
-          <option value="auto">Otomatis (langsung bila tersedia)</option>
-          <option value="live" disabled={!liveReady}>Model langsung{liveReady ? "" : " (tidak tersedia)"}</option>
-        </select>
+      <p id="runform-help" className="max-w-3xl text-[13px] leading-relaxed text-ink-soft">{liveNote}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <button disabled={busy} className="btn btn-primary w-full sm:w-auto">{busy ? "Menjalankan…" : "Jalankan evaluasi"}</button>
       </div>
-      <div className="sm:col-span-3">
-        <p id="runform-help" className="mb-2 text-xs text-ink-soft">{liveNote}</p>
-        <button disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Menjalankan…" : "Jalankan evaluasi"}</button>
-        {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-ok" : "text-danger"}`}>{msg.text}</p>}
-      </div>
+      {msg && <Notice tone={msg.ok ? "ok" : "danger"}><span role={msg.ok ? "status" : "alert"}>{msg.text}</span></Notice>}
     </form>
   );
 }

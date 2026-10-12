@@ -19,7 +19,7 @@ export function PendingStaffActions({ id, category, status, categories, canManag
     <div className="space-y-5">
       <section aria-labelledby="recl" className="space-y-2">
         <h3 id="recl" className="text-sm font-semibold">Ubah kategori penanganan</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3">
           <Field label="Kategori" id="cat"><select id="cat" value={cat} onChange={(e) => setCat(e.target.value)} className={input}>{categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
           <Field label="Alasan (min. 10 karakter)" id="reason"><input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} className={input} /></Field>
         </div>

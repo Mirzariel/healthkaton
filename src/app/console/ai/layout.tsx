@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AiTabs, type AiTab } from "@/components/ai/AiTabs";
+import { IconCpu } from "@/components/icons";
 import { can } from "@/lib/auth/principal";
 import { CONSOLE_NAV } from "@/lib/nav";
 import { getPrincipal } from "@/lib/server";
@@ -17,7 +18,14 @@ export default async function AiLayout({ children }: { children: ReactNode }) {
   if (evalReady && can(me, "ai.eval")) tabs.push({ href: "/console/ai/evaluation", label: "Evaluasi" });
   return (
     <>
-      {tabs.length > 0 && <AiTabs tabs={tabs} />}
+      {tabs.length > 0 && (
+        <div className="no-print">
+          <p className="mb-1 flex items-center gap-2 text-[12.5px] font-medium text-muted">
+            <IconCpu size={14} /> Modul AI
+          </p>
+          <AiTabs tabs={tabs} />
+        </div>
+      )}
       {children}
     </>
   );

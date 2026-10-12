@@ -111,9 +111,9 @@ export function findForbiddenTerms(text: string): string[] {
 }
 
 export const TONE_CLASS: Record<"muted" | "info" | "warn" | "ok" | "danger", string> = {
-  muted: "bg-line text-ink-soft",
-  info: "bg-info-soft text-info",
-  warn: "bg-warn-soft text-warn",
-  ok: "bg-ok-soft text-ok",
-  danger: "bg-danger-soft text-danger",
+  muted: "bg-subtle text-ink-soft ring-1 ring-inset ring-line",
+  info: "bg-info-soft text-info ring-1 ring-inset ring-info/15",
+  warn: "bg-warn-soft text-warn ring-1 ring-inset ring-warn/15",
+  ok: "bg-ok-soft text-ok ring-1 ring-inset ring-ok/15",
+  danger: "bg-danger-soft text-danger ring-1 ring-inset ring-danger/15",
 };

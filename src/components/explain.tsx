@@ -23,7 +23,7 @@ function usePopover() {
     const el = anchor.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const W = 300;
+    const W = 288;
     const left = Math.min(Math.max(12, r.left + r.width / 2 - W / 2), window.innerWidth - W - 12);
     const above = r.bottom + 180 > window.innerHeight && r.top > 200;
     setPos({ top: above ? r.top - 8 : r.bottom + 8, left, above });
@@ -83,16 +83,15 @@ function Bubble({ k, open, pos, id, hover }: { k: GlossaryKey; open: boolean; po
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.1 } }}
           transition={{ duration: 0.18, ease: EASE }}
-          style={{ position: "fixed", top: pos.top, left: pos.left, width: 300, zIndex: 100 }}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: 288, zIndex: 100 }}
           className="pointer-events-auto"
         >
-          <div className={`rounded-xl bg-ink p-4 text-left text-white shadow-depth-3 ring-1 ring-white/10 ${pos.above ? "-translate-y-full" : ""}`}>
-            <p className="eyebrow text-mint">Apa ini?</p>
-            <p className="mt-1 font-display text-[15px] font-bold leading-snug">{g.title}</p>
-            <p className="mt-1.5 text-[13px] font-normal leading-relaxed text-white/85">{g.body}</p>
+          <div className={`rounded-lg bg-ink px-3.5 py-3 text-left text-white shadow-depth-3 ring-1 ring-white/10 ${pos.above ? "-translate-y-full" : ""}`}>
+            <p className="text-[13.5px] font-semibold leading-snug tracking-normal">{g.title}</p>
+            <p className="mt-1 text-[13px] font-normal normal-case leading-relaxed tracking-normal text-white/80">{g.body}</p>
             {"example" in g && g.example && (
-              <p className="mt-2 text-[12px] text-white/60">
-                Contoh: <span className="font-mono text-gold-1">{g.example}</span>
+              <p className="mt-2 text-[12px] normal-case tracking-normal text-white/55">
+                Contoh: <span className="font-mono text-white/85">{g.example}</span>
               </p>
             )}
           </div>
@@ -154,9 +153,9 @@ export function InfoDot({ k, className = "", label }: { k: GlossaryKey; classNam
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         {...hover}
-        className={`inline-grid h-4 w-4 shrink-0 cursor-help place-items-center rounded-full bg-current/10 align-[-2px] text-[10px] font-bold normal-case tracking-normal opacity-70 transition hover:opacity-100 ${className}`}
+        className={`info-dot inline-grid shrink-0 cursor-help place-items-center rounded-md text-[9.5px] font-semibold normal-case not-italic leading-none tracking-normal text-muted align-middle transition-colors hover:bg-subtle ${className}`}
       >
-        <span aria-hidden>i</span>
+        <span aria-hidden className="grid size-[15px] place-items-center rounded-full ring-1 ring-current/40">i</span>
       </button>
       <Bubble k={k} open={open} pos={pos} id={id} hover={hover} />
     </>

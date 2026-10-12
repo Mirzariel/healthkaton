@@ -1,55 +1,83 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { InfoDot } from "@/components/explain";
+import { TableFrame } from "@/components/TableFrame";
+import { IconAlert, IconArrowUpRight, IconCheckCircle, IconChevronRight, IconInfo, IconLock } from "@/components/icons";
 import { AI_MODE_LABEL, DATA_SOURCE_LABEL, PROOF_LABEL, TONE_CLASS, type ProofStatus } from "@/lib/labels";
 import type { GlossaryKey } from "@/lib/glossary";
 
-/** Kartu: putih, garis rambut. `elevated` menambah bayangan tipis untuk satu elemen terpenting per layar. */
+/* Perkakas antarmuka bersama SEHATI. Lihat docs/DESIGN-SYSTEM.md untuk aturan pemakaian.
+   Semua halaman konsol, portal faskes, dan beranda memakai komponen ini agar tampil sebagai satu produk. */
+
+type Tone = keyof typeof TONE_CLASS;
+
+/** Kartu: putih, garis rambut, sudut 12px. `elevated` untuk satu elemen terpenting per layar. */
 export function Card({ children, className = "", elevated = false }: { children: ReactNode; className?: string; elevated?: boolean }) {
-  return <div className={`rounded-xl border border-line bg-card ${elevated ? "shadow-[0_1px_2px_rgb(11_13_12/0.05),0_4px_12px_-6px_rgb(11_13_12/0.08)]" : ""} ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-line bg-card ${elevated ? "shadow-depth-2" : "shadow-depth-1"} ${className}`}>{children}</div>;
+}
+
+/** Kepala kartu: judul + keterangan + aksi, dipisah garis rambut dari isi. */
+export function CardHeader({ title, hint, children, className = "" }: { title: ReactNode; hint?: ReactNode; children?: ReactNode; className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-3.5 ${className}`}>
+      <div className="min-w-0">
+        <h3 className="text-[14px] font-semibold tracking-tight text-ink">{title}</h3>
+        {hint && <p className="mt-0.5 text-[13px] text-muted">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 export function Pill({ children, className = "", title }: { children: ReactNode; className?: string; title?: string }) {
   return (
-    <span title={title} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold ${className}`}>
+    <span title={title} className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[12px] font-medium leading-none ${className}`}>
       {children}
     </span>
   );
 }
 
+const DOT: Record<Tone, string> = { muted: "bg-muted/70", info: "bg-info", warn: "bg-accent", ok: "bg-ok", danger: "bg-danger" };
+
+/** Lencana status dengan titik warna. Warna status hanya dipakai untuk status. */
+export function StatusPill({ tone, children, title, dot = true }: { tone: Tone; children: ReactNode; title?: string; dot?: boolean }) {
+  return (
+    <Pill className={TONE_CLASS[tone]} title={title}>
+      {dot && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} />}
+      {children}
+    </Pill>
+  );
+}
+
 export function ProofBadge({ status }: { status: ProofStatus }) {
   const p = PROOF_LABEL[status];
-  return <Pill className={TONE_CLASS[p.tone]} title={p.hint}>{p.label}</Pill>;
+  return <StatusPill tone={p.tone} title={p.hint}>{p.label}</StatusPill>;
 }
 
 /** Penanda mode AI pada setiap operasi: AI langsung / Simulasi / Fallback. */
 export function AiModeBadge({ mode }: { mode: "live" | "simulated" | "fallback" }) {
   const m = AI_MODE_LABEL[mode];
-  return <Pill className={TONE_CLASS[m.tone === "ok" ? "ok" : m.tone === "warn" ? "warn" : "muted"]} title={m.hint}>{m.label}</Pill>;
+  return <StatusPill tone={m.tone === "ok" ? "ok" : m.tone === "warn" ? "warn" : "muted"} title={m.hint}>{m.label}</StatusPill>;
 }
 
 export function SourceBadge({ source }: { source: keyof typeof DATA_SOURCE_LABEL }) {
   const tone = source === "live" ? "ok" : source === "unavailable" ? "danger" : source === "import" ? "info" : "muted";
-  return <Pill className={TONE_CLASS[tone]} title="Asal data pada tampilan ini">{DATA_SOURCE_LABEL[source]}</Pill>;
-}
-
-export function StatusPill({ tone, children, title }: { tone: keyof typeof TONE_CLASS; children: ReactNode; title?: string }) {
-  return <Pill className={TONE_CLASS[tone]} title={title}>{children}</Pill>;
+  return <StatusPill tone={tone} title="Asal data pada tampilan ini">{DATA_SOURCE_LABEL[source]}</StatusPill>;
 }
 
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav aria-label="Jejak halaman" className="no-print mb-3 text-sm text-muted">
-      <ol className="flex flex-wrap items-center gap-1.5">
+    <nav aria-label="Jejak halaman" className="no-print mb-3 text-[13px] text-muted">
+      <ol className="flex flex-wrap items-center gap-1">
         {items.map((it, i) => (
-          <li key={i} className="flex items-center gap-1.5">
-            {i > 0 && <span aria-hidden>/</span>}
+          <li key={i} className="flex min-w-0 items-center gap-1">
+            {i > 0 && <IconChevronRight size={14} className="shrink-0 text-line-strong" />}
             {it.href ? (
-              <Link href={it.href} className="font-medium text-ink-soft underline-offset-4 hover:text-ink hover:underline">
+              <Link href={it.href} className="rounded px-0.5 font-medium text-ink-soft transition-colors hover:text-ink">
                 {it.label}
               </Link>
             ) : (
-              <span aria-current="page" className="font-mono text-xs font-medium text-ink-soft">{it.label}</span>
+              <span aria-current="page" className="truncate px-0.5 font-mono text-[12px] text-muted">{it.label}</span>
             )}
           </li>
         ))}
@@ -58,18 +86,18 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
   );
 }
 
-/** Judul halaman konsol: satu judul, satu kalimat tujuan, satu aksi utama (opsional). */
+/** Judul halaman: satu judul, satu kalimat tujuan, aksi utama di kanan (opsional). */
 export function PageHeader({ title, purpose, crumbs, children, eyebrow }: { title: string; purpose?: string; crumbs?: { label: string; href?: string }[]; children?: ReactNode; eyebrow?: string }) {
   return (
-    <header className="mb-6">
+    <header className="mb-7">
       {crumbs && <Breadcrumb items={crumbs} />}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          {eyebrow && <p className="eyebrow mb-1.5 text-muted">{eyebrow}</p>}
-          <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">{title}</h1>
-          {purpose && <p className="mt-1.5 max-w-2xl text-sm text-ink-soft">{purpose}</p>}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 max-w-3xl">
+          {eyebrow && <p className="eyebrow mb-2 text-muted">{eyebrow}</p>}
+          <h1 className="text-[1.5rem] font-semibold leading-tight tracking-tight text-ink md:text-[1.75rem]">{title}</h1>
+          {purpose && <p className="mt-2 text-[14.5px] leading-relaxed text-ink-soft">{purpose}</p>}
         </div>
-        {children}
+        {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
       </div>
     </header>
   );
@@ -77,36 +105,49 @@ export function PageHeader({ title, purpose, crumbs, children, eyebrow }: { titl
 
 export function SectionTitle({ title, hint, info, id, children }: { title: ReactNode; hint?: ReactNode; info?: GlossaryKey; id?: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-2">
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="min-w-0">
-        <h2 id={id} className="scroll-mt-24 text-base font-semibold tracking-tight">
+        <h2 id={id} className="flex scroll-mt-24 items-center gap-1.5 text-[15px] font-semibold tracking-tight text-ink">
           {title} {info && <InfoDot k={info} className="text-ink-soft" />}
         </h2>
-        {hint && <p className="mt-0.5 text-sm text-ink-soft">{hint}</p>}
+        {hint && <p className="mt-1 max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">{hint}</p>}
       </div>
       {children}
     </div>
   );
 }
 
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+/** Bagian halaman dengan jarak vertikal standar. */
+export function Section({ children, className = "", ...rest }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <div className="px-4 py-10 text-center">
-      <p className="text-lg font-semibold text-ink">{title}</p>
-      {children && <div className="mt-2 text-sm text-ink-soft">{children}</div>}
+    <section className={`mt-10 space-y-4 first:mt-0 ${className}`} {...rest}>
+      {children}
+    </section>
+  );
+}
+
+export function EmptyState({ title, children, icon }: { title: string; children?: ReactNode; icon?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center px-6 py-12 text-center">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-subtle text-muted ring-1 ring-line" aria-hidden>
+        {icon ?? <IconCheckCircle size={18} />}
+      </span>
+      <p className="mt-3 text-[15px] font-semibold text-ink">{title}</p>
+      {children && <div className="mt-1 max-w-md text-[13.5px] leading-relaxed text-ink-soft">{children}</div>}
     </div>
   );
 }
 
+const STAT_DOT = { default: "bg-line-strong", danger: "bg-danger", ok: "bg-ok", warn: "bg-accent" };
+
 /** Ubin angka (KPI). Selalu sertakan `hint` yang menyebut denominator atau cakupan bila angkanya rasio. */
 export function Stat({ label, value, hint, tone = "default", href, info }: { label: string; value: ReactNode; hint?: string; tone?: "default" | "danger" | "ok" | "warn"; href?: string; info?: GlossaryKey }) {
-  const dots = { default: "bg-line", danger: "bg-danger", ok: "bg-ok", warn: "bg-accent" };
   return (
-    <div className={`relative block rounded-xl border border-line bg-card p-4 ${href ? "transition-colors hover:border-ink/30" : ""}`}>
-      <p className="flex items-center gap-2 text-xs font-medium text-ink-soft">
-        <span className={`h-1.5 w-1.5 rounded-full ${dots[tone]}`} aria-hidden />
+    <div className={`group relative flex flex-col rounded-xl border border-line bg-card px-4 py-3.5 shadow-depth-1 ${href ? "transition-[border-color,box-shadow] duration-150 hover:border-line-strong hover:shadow-depth-2" : ""}`}>
+      <p className="flex items-start gap-2 pr-5 text-[13px] font-medium leading-snug text-ink-soft">
+        <span className={`mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full ${STAT_DOT[tone]}`} aria-hidden />
         {href ? (
-          <Link href={href} className="after:absolute after:inset-0 after:rounded-xl after:content-['']">
+          <Link href={href} className="after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-brand">
             {label}
           </Link>
         ) : (
@@ -118,8 +159,9 @@ export function Stat({ label, value, hint, tone = "default", href, info }: { lab
           </span>
         )}
       </p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+      {href && <IconArrowUpRight size={15} className="absolute right-3.5 top-3.5 text-muted opacity-0 transition-opacity group-hover:opacity-100" />}
+      <p className="mt-2 text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-ink">{value}</p>
+      {hint && <p className="mt-2 text-[12.5px] leading-snug text-muted">{hint}</p>}
     </div>
   );
 }
@@ -127,16 +169,103 @@ export function Stat({ label, value, hint, tone = "default", href, info }: { lab
 /** Pesan akses ditolak yang ramah (server tetap menolak aksinya). */
 export function Forbidden({ need }: { need?: string }) {
   return (
-    <Card className="p-8 text-center">
-      <p className="text-lg font-semibold">Peran ini tidak memiliki akses ke halaman ini</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-        Ganti peran lewat pemilih di pojok kanan atas (khusus demo){need ? `. Dibutuhkan wewenang: ${need}.` : "."}
-      </p>
+    <Card className="mx-auto max-w-lg">
+      <EmptyState title="Peran ini tidak memiliki akses ke halaman ini" icon={<IconLock size={18} />}>
+        Ganti peran lewat pemilih peran demo{need ? `. Dibutuhkan wewenang: ${need}.` : "."}
+      </EmptyState>
     </Card>
+  );
+}
+
+const NOTICE: Record<"neutral" | "info" | "warn" | "danger" | "ok", { box: string; icon: ReactNode }> = {
+  neutral: { box: "border-line bg-subtle/70 text-ink-soft", icon: <IconInfo size={15} className="text-muted" /> },
+  info: { box: "border-brand/15 bg-brand-tint text-ink-soft", icon: <IconInfo size={15} className="text-brand" /> },
+  warn: { box: "border-warn/20 bg-warn-soft text-ink-soft", icon: <IconAlert size={15} className="text-warn" /> },
+  danger: { box: "border-danger/20 bg-danger-soft text-ink-soft", icon: <IconAlert size={15} className="text-danger" /> },
+  ok: { box: "border-ok/20 bg-ok-soft text-ink-soft", icon: <IconCheckCircle size={15} className="text-ok" /> },
+};
+
+/** Catatan sebaris dengan ikon. Untuk penjelasan, batasan, dan peringatan yang tenang. */
+export function Notice({ tone = "info", title, children, className = "" }: { tone?: keyof typeof NOTICE; title?: ReactNode; children?: ReactNode; className?: string }) {
+  const n = NOTICE[tone];
+  return (
+    <div className={`flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed ${n.box} ${className}`}>
+      <span className="mt-[3px] shrink-0">{n.icon}</span>
+      <div className="min-w-0">
+        {title && <p className="font-semibold text-ink">{title}</p>}
+        {children}
+      </div>
+    </div>
   );
 }
 
 /** Peringatan permanen untuk data/mesin simulasi. */
 export function SimNotice({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-line bg-brand-soft/60 px-3 py-2 text-xs text-ink-soft">{children}</div>;
+  return <Notice tone="info">{children}</Notice>;
+}
+
+/** Wadah tabel: kartu dengan gulir horizontal untuk tabel lebar. Sel memakai padding px-4 py-3. */
+export function TableCard({ children, className = "", label }: { children: ReactNode; className?: string; label?: string }) {
+  return <TableFrame className={className} label={label}>{children}</TableFrame>;
+}
+
+/** Bilah filter/pencarian di atas daftar. */
+export function Toolbar({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`panel-inset flex flex-wrap items-end gap-x-3 gap-y-3 p-3 ${className}`}>{children}</div>;
+}
+
+/** Tab berbasis tautan (aman untuk komponen server). `active` dihitung oleh pemanggil. */
+export function LinkTabs({ items, label }: { items: { href: string; label: ReactNode; active: boolean; count?: number }[]; label: string }) {
+  return (
+    <nav aria-label={label} className="scroll-x border-b border-line">
+      <ul className="flex min-w-max gap-5">
+        {items.map((t) => (
+          <li key={t.href}>
+            <Link
+              href={t.href}
+              aria-current={t.active ? "page" : undefined}
+              className={`-mb-px inline-flex items-center gap-2 border-b-2 py-2.5 text-[14px] font-medium transition-colors ${t.active ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            >
+              {t.label}
+              {t.count !== undefined && <span className={`rounded-md px-1.5 text-[12px] tabular-nums ${t.active ? "bg-ink text-white" : "bg-subtle text-ink-soft"}`}>{t.count}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** Daftar keterangan dua kolom (label → nilai). */
+export function DescList({ items, className = "" }: { items: { k: ReactNode; v: ReactNode }[]; className?: string }) {
+  return (
+    <dl className={`divide-y divide-line text-[14px] ${className}`}>
+      {items.map((it, i) => (
+        <div key={i} className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
+          <dt className="text-[13px] text-muted">{it.k}</dt>
+          <dd className="min-w-0 break-words text-ink">{it.v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`} aria-hidden />;
+}
+
+/** Kerangka halaman saat memuat. */
+export function PageSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Memuat" className="animate-fade-in">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-3 h-7 w-72 max-w-full" />
+      <Skeleton className="mt-3 h-4 w-[28rem] max-w-full" />
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[104px] rounded-xl" />)}
+      </div>
+      <Skeleton className="mt-8 h-72 rounded-xl" />
+      <span className="sr-only">Memuat…</span>
+    </div>
+  );
 }

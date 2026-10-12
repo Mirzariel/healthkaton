@@ -19,10 +19,12 @@ export function Pager({ base, page, pages, params }: { base: string; page: numbe
     return `${base}?${q.toString()}`;
   };
   return (
-    <nav aria-label="Halaman" className="flex items-center justify-between gap-3 text-sm">
-      {page > 1 ? <Link href={href(page - 1)} className="font-semibold underline-offset-4 hover:underline">← Sebelumnya</Link> : <span />}
-      <span className="text-ink-soft">Halaman {page} dari {pages}</span>
-      {page < pages ? <Link href={href(page + 1)} className="font-semibold underline-offset-4 hover:underline">Berikutnya →</Link> : <span />}
+    <nav aria-label="Halaman" className="flex items-center justify-between gap-3 text-[13px]">
+      <span className="text-muted">Halaman <span className="font-medium tabular-nums text-ink">{page}</span> dari <span className="tabular-nums">{pages}</span></span>
+      <span className="flex gap-2">
+        {page > 1 ? <Link href={href(page - 1)} className="btn btn-secondary btn-sm">← Sebelumnya</Link> : <span aria-disabled="true" className="btn btn-secondary btn-sm">← Sebelumnya</span>}
+        {page < pages ? <Link href={href(page + 1)} className="btn btn-secondary btn-sm">Berikutnya →</Link> : <span aria-disabled="true" className="btn btn-secondary btn-sm">Berikutnya →</span>}
+      </span>
     </nav>
   );
 }
@@ -30,17 +32,17 @@ export function Pager({ base, page, pages, params }: { base: string; page: numbe
 /** Kotak pernyataan dengan sumbernya, dipakai ringkasan asisten dan bukti. */
 export function Quote({ children, by }: { children: ReactNode; by?: string }) {
   return (
-    <blockquote className="rounded-lg border-l-4 border-brand/40 bg-brand-soft/40 px-3 py-2 text-sm">
+    <blockquote className="rounded-r-lg border-l-2 border-brand/50 bg-brand-tint px-3.5 py-2.5 text-[14px] leading-relaxed text-ink">
       {children}
-      {by && <footer className="mt-1 text-xs text-muted">{by}</footer>}
+      {by && <footer className="mt-1.5 text-[12px] text-muted">{by}</footer>}
     </blockquote>
   );
 }
 
 export function KV({ k, children }: { k: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[8.5rem_1fr] gap-2 py-1.5 text-sm">
-      <dt className="text-ink-soft">{k}</dt>
+    <div className="grid grid-cols-[8.5rem_1fr] gap-3 py-2 text-[14px]">
+      <dt className="text-[13px] text-muted">{k}</dt>
       <dd className="min-w-0 break-words">{children}</dd>
     </div>
   );

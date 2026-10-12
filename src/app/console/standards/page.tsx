@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Disclosure } from "@/components/analytics/blocks";
 import { ImportBox } from "@/components/RegistryActions";
-import { Card, EmptyState, Forbidden, PageHeader, Pill, SectionTitle, SimNotice } from "@/components/ui";
+import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, SimNotice, StatusPill, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
 import { TONE_CLASS } from "@/lib/labels";
@@ -31,52 +32,54 @@ export default async function StandardsPage() {
   const sources = listSources(db);
   return (
     <>
-      <PageHeader title="Registry standar" purpose="Semua butir pertanyaan survei berasal dari sini, lengkap dengan sumber, versi, dan status tinjauan. Mesin AI tidak menambah butir sendiri." eyebrow="Standar dan AI" />
+      <PageHeader title="Registry standar" purpose="Semua butir survei berasal dari sini; AI tidak menambah butir sendiri." eyebrow="Standar dan AI" />
       <SimNotice>{APPROVAL_DISCLAIMER}</SimNotice>
-      <section className="mt-6 space-y-3">
-        <SectionTitle title="Versi standar" />
-        <Card className="overflow-x-auto">
+      <Section className="mt-8">
+        <SectionTitle title="Versi standar" hint="Buka satu versi untuk butir dan riwayatnya." />
+        <TableCard label="Versi standar">
           {versions.length === 0 ? <EmptyState title="Belum ada standar" /> : (
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted"><tr><th className="p-3">Standar</th><th className="p-3">Versi</th><th className="p-3">Status</th><th className="p-3">Butir</th><th className="p-3">Cakupan</th></tr></thead>
-              <tbody className="divide-y divide-line">
+            <table className="w-full min-w-[34rem] text-left text-[13.5px]">
+              <thead><tr><th className="px-4 py-2.5">Standar</th><th className="px-4 py-2.5">Versi</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5 text-right">Butir</th><th className="px-4 py-2.5">Cakupan</th></tr></thead>
+              <tbody>
                 {versions.map((v) => (
                   <tr key={v.id}>
-                    <td className="p-3"><Link className="font-semibold underline-offset-4 hover:underline" href={`/console/standards/${encodeURIComponent(v.id)}`}>{v.standard_name}</Link></td>
-                    <td className="p-3 font-mono text-xs">{v.version}</td>
-                    <td className="p-3"><Pill className={TONE_CLASS[STATUS[v.status].tone]}>{STATUS[v.status].label}</Pill></td>
-                    <td className="p-3 tabular-nums">{counts.get(v.id) ?? 0}</td>
-                    <td className="p-3 text-ink-soft">{v.scope.join(", ") || "-"}</td>
+                    <td className="px-4 py-3"><Link className="font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current" href={`/console/standards/${encodeURIComponent(v.id)}`}>{v.standard_name}</Link></td>
+                    <td className="px-4 py-3 font-mono text-[12px]">{v.version}</td>
+                    <td className="px-4 py-3"><StatusPill tone={STATUS[v.status].tone}>{STATUS[v.status].label}</StatusPill></td>
+                    <td className="px-4 py-3 text-right tabular-nums">{counts.get(v.id) ?? 0}</td>
+                    <td className="px-4 py-3 text-ink-soft">{v.scope.join(", ") || "-"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </Card>
-      </section>
-      <section className="mt-8 space-y-3">
-        <SectionTitle title="Dokumen sumber" hint="Status validasi dicatat apa adanya. Tautan eksternal yang belum dibuka tidak dianggap terverifikasi." />
-        <Card className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted"><tr><th className="p-3">ID</th><th className="p-3">Dokumen</th><th className="p-3">Cakupan</th><th className="p-3">Validasi</th></tr></thead>
-            <tbody className="divide-y divide-line">
+        </TableCard>
+      </Section>
+      <Section className="mt-10">
+        <Disclosure title="Dokumen sumber" meta={`${sources.length} dokumen`} flush>
+        <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted">Tautan yang belum dibuka tidak dianggap terverifikasi.</p>
+        <div className="scroll-x">
+          <table className="w-full min-w-[40rem] text-left text-[13.5px]">
+            <thead><tr><th className="px-4 py-2.5">ID</th><th className="px-4 py-2.5">Dokumen</th><th className="px-4 py-2.5">Cakupan</th><th className="px-4 py-2.5">Validasi</th></tr></thead>
+            <tbody className="align-top">
               {sources.map((s) => (
-                <tr key={s.id} className="align-top">
-                  <td className="p-3 font-mono text-xs">{s.id}</td>
-                  <td className="p-3"><p className="font-medium">{s.title}</p>{s.notes && <p className="mt-0.5 text-xs text-muted">{s.notes}</p>}</td>
-                  <td className="p-3 text-ink-soft">{s.scope ?? "-"}</td>
-                  <td className="p-3"><Pill className={TONE_CLASS[SRC[s.validation_status].tone]}>{SRC[s.validation_status].label}</Pill></td>
+                <tr key={s.id}>
+                  <td className="px-4 py-3 font-mono text-[12px]">{s.id}</td>
+                  <td className="px-4 py-3"><p className="font-medium text-ink">{s.title}</p>{s.notes && <p className="mt-0.5 max-w-xl text-[12.5px] leading-relaxed text-muted">{s.notes}</p>}</td>
+                  <td className="px-4 py-3 text-ink-soft">{s.scope ?? "-"}</td>
+                  <td className="px-4 py-3"><StatusPill tone={SRC[s.validation_status].tone}>{SRC[s.validation_status].label}</StatusPill></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </Card>
-      </section>
+        </div>
+        </Disclosure>
+      </Section>
       {can(me, "standards.edit") && (
-        <section className="mt-8 space-y-3">
-          <SectionTitle title="Impor standar (JSON)" hint="Selalu masuk sebagai draft. Impor yang sama dua kali tidak membuat versi ganda." />
-          <Card className="p-4"><ImportBox /></Card>
-        </section>
+        <Section className="mt-10">
+          <SectionTitle title="Impor standar (JSON)" hint="Selalu masuk sebagai draft; impor ganda tidak membuat versi ganda." />
+          <Card className="p-5"><ImportBox /></Card>
+        </Section>
       )}
     </>
   );

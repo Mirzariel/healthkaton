@@ -1,5 +1,6 @@
 "use client";
 
+import { FilePicker } from "@/components/FilePicker";
 import { useState } from "react";
 import { Field, Msg, api, btn, input, primary, useAct } from "./kit";
 import type { Option } from "./PendingForms";
@@ -24,7 +25,7 @@ export function UploadForm({ episodes, fixedEpisode, surface }: { episodes: Opti
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {!fixedEpisode && <Field label="Episode terkait" id="up-ep" hint="Wajib untuk menentukan faskes pemilik dokumen."><select id="up-ep" value={episode} onChange={(e) => setEpisode(e.target.value)} className={input}><option value="">Pilih episode</option>{episodes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field>}
-        <Field label="Berkas (PDF, PNG, atau JPEG; maks. 4 MB)" id="up-file"><input id="up-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className={input} /></Field>
+        <Field label="Berkas (PDF, PNG, atau JPEG; maks. 4 MB)" id="up-file"><FilePicker id="up-file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" onChange={setFile} /></Field>
       </div>
       <button type="button" className={primary} disabled={a.busy || !file || !episode} onClick={submit}>{a.busy ? "Mengunggah dan memproses…" : "Unggah"}</button>
       {status && <p className="text-sm text-ink-soft">{status}</p>}

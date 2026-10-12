@@ -1,5 +1,5 @@
 import { ActivateButton, ConfigForm, TestConnection, type CfgView } from "@/components/ai/ConfigPanel";
-import { Card, Forbidden, PageHeader, Pill, SectionTitle, SimNotice } from "@/components/ui";
+import { Card, CardHeader, DescList, Forbidden, PageHeader, Pill, Section, SectionTitle, SimNotice, StatusPill, TableCard } from "@/components/ui";
 import { listConfigs } from "@/lib/ai/admin";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
@@ -18,55 +18,65 @@ export default async function AiConfigPage() {
   const canEdit = can(me, "ai.config");
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Konfigurasi AI" purpose="Setiap perubahan membuat versi baru yang dapat ditelusuri. Anggaran pertanyaan ditegakkan oleh aturan, bukan oleh model." />
-      <SimNotice>{c.key_hint} Kunci penyedia tidak pernah disimpan di basis data atau ditampilkan di sini; ia dibaca dari variabel lingkungan server (ANTHROPIC_API_KEY).</SimNotice>
-      <section className="mt-6 space-y-3">
-        <SectionTitle title="Konfigurasi aktif" hint={`Versi ${active.version}${active.note ? ` · ${active.note}` : ""}`} />
-        <Card className="p-4">
+      <PageHeader eyebrow="Standar dan AI" title="Konfigurasi AI" purpose="Tiap perubahan menjadi versi baru yang dapat ditelusuri." />
+      <SimNotice>{c.key_hint} Kunci tidak disimpan atau ditampilkan; dibaca dari ANTHROPIC_API_KEY di server. Aturan, bukan model, menegakkan anggaran.</SimNotice>
+
+      <Section className="mt-8">
+        <SectionTitle title="Konfigurasi aktif" hint={`Versi ${active.version}${active.note ? `. ${active.note}` : ""}`} />
+        <Card elevated className="px-5 py-5">
           {canEdit ? <ConfigForm active={active as unknown as CfgView} prompts={c.prompts.map((p) => ({ version: p.version, title: p.title }))} /> : (
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div><dt className="text-xs text-muted">Prompt</dt><dd>{active.prompt_version}</dd></div>
-              <div><dt className="text-xs text-muted">Mode</dt><dd>{MODE_PREF[active.mode_pref]}</dd></div>
-              <div><dt className="text-xs text-muted">Model</dt><dd>{active.model}</dd></div>
-              <div><dt className="text-xs text-muted">Anggaran inti / klarifikasi</dt><dd>{active.budget_core} / {active.budget_clarif}</dd></div>
-              <p className="text-xs text-ink-soft sm:col-span-2">Perubahan konfigurasi membutuhkan wewenang ai.config (admin).</p>
-            </dl>
+            <>
+              <DescList items={[
+                { k: "Prompt", v: <span className="font-mono text-[13px]">{active.prompt_version}</span> },
+                { k: "Mode", v: MODE_PREF[active.mode_pref] },
+                { k: "Model", v: <span className="font-mono text-[13px]">{active.model}</span> },
+                { k: "Anggaran inti / klarifikasi", v: <span className="tabular-nums">{active.budget_core} / {active.budget_clarif}</span> },
+              ]} />
+              <p className="mt-3 text-[13px] text-ink-soft">Perubahan konfigurasi membutuhkan wewenang ai.config (admin).</p>
+            </>
           )}
         </Card>
-        {canEdit && <Card className="p-4"><p className="mb-2 text-sm font-semibold">Uji koneksi penyedia</p><TestConnection /></Card>}
-      </section>
-      <section className="mt-8 space-y-3">
-        <SectionTitle title="Versi prompt" hint="Daftar prompt yang tersedia; versi 'strict' menolak keluaran di luar skema." />
+        {canEdit && (
+          <Card>
+            <CardHeader title="Uji koneksi penyedia" hint="Tidak mengubah konfigurasi." />
+            <div className="px-5 py-4"><TestConnection /></div>
+          </Card>
+        )}
+      </Section>
+
+      <Section className="mt-10">
+        <SectionTitle title="Versi prompt" hint="Versi ketat menolak keluaran di luar skema." />
         <Card className="divide-y divide-line">
           {c.prompts.map((p) => (
-            <div key={p.version} className="p-4 text-sm">
-              <div className="flex flex-wrap items-center gap-2"><strong className="font-mono">{p.version}</strong><span>{p.title}</span>{p.strict && <Pill className={TONE_CLASS.ok}>ketat</Pill>}</div>
-              <p className="mt-1 text-xs text-ink-soft">{p.note}</p>
+            <div key={p.version} className="px-5 py-3.5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5"><strong className="font-mono text-[13px]">{p.version}</strong><span className="text-[14px] text-ink">{p.title}</span>{p.strict && <StatusPill tone="ok">ketat</StatusPill>}</div>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{p.note}</p>
             </div>
           ))}
         </Card>
-      </section>
-      <section className="mt-8 space-y-3">
+      </Section>
+
+      <Section className="mt-10">
         <SectionTitle title="Riwayat versi" />
-        <Card className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted"><tr><th className="p-3">Versi</th><th className="p-3">Prompt</th><th className="p-3">Mode</th><th className="p-3">Model</th><th className="p-3">Anggaran (inti/klarif.)</th><th className="p-3">Dibuat</th><th className="p-3" /></tr></thead>
-            <tbody className="divide-y divide-line">
+        <TableCard label="Riwayat versi konfigurasi">
+          <table className="w-full min-w-[40rem] text-left text-[13.5px]">
+            <thead><tr><th className="px-4 py-2.5">Versi</th><th className="px-4 py-2.5">Prompt</th><th className="px-4 py-2.5">Mode</th><th className="px-4 py-2.5">Model</th><th className="px-4 py-2.5 text-right">Anggaran (inti/klarif.)</th><th className="px-4 py-2.5">Dibuat</th><th className="px-4 py-2.5" /></tr></thead>
+            <tbody className="align-top">
               {c.configs.map((x) => (
-                <tr key={x.version}>
-                  <td className="p-3 font-semibold tabular-nums">{x.version}{x.active ? <Pill className={`ml-2 ${TONE_CLASS.ok}`}>aktif</Pill> : null}</td>
-                  <td className="p-3 font-mono text-xs">{x.prompt_version}</td>
-                  <td className="p-3">{MODE_PREF[x.mode_pref]}</td>
-                  <td className="p-3 font-mono text-xs">{x.model}</td>
-                  <td className="p-3 tabular-nums">{x.budget_core} / {x.budget_clarif}</td>
-                  <td className="p-3 text-xs text-ink-soft">{x.created_at?.slice(0, 16) ?? "—"}<span className="block">{x.created_by ?? ""}</span>{x.note}</td>
-                  <td className="p-3 text-right">{canEdit && !x.active ? <ActivateButton version={x.version} /> : null}</td>
+                <tr key={x.version} className={x.active ? "bg-brand-tint/60" : ""}>
+                  <td className="px-4 py-3 font-semibold tabular-nums">{x.version}{x.active ? <Pill className={`ml-2 ${TONE_CLASS.ok}`}>aktif</Pill> : null}</td>
+                  <td className="px-4 py-3 font-mono text-[12px]">{x.prompt_version}</td>
+                  <td className="px-4 py-3">{MODE_PREF[x.mode_pref]}</td>
+                  <td className="px-4 py-3 font-mono text-[12px]">{x.model}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{x.budget_core} / {x.budget_clarif}</td>
+                  <td className="px-4 py-3 text-[12.5px] text-ink-soft">{x.created_at?.slice(0, 16) ?? "—"}<span className="block">{x.created_by ?? ""}</span>{x.note}</td>
+                  <td className="px-4 py-3 text-right">{canEdit && !x.active ? <ActivateButton version={x.version} /> : null}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </Card>
-      </section>
+        </TableCard>
+      </Section>
     </>
   );
 }

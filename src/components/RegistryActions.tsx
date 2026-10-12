@@ -2,21 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Notice } from "@/components/ui";
 
 async function call(url: string, method: string, body: unknown) {
   const r = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   return (await r.json()) as { ok: boolean; error?: string; data?: Record<string, unknown> };
 }
 
-const btn = "rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-semibold hover:border-ink/40 disabled:opacity-50";
-const primary = "rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50";
+const btn = "btn btn-secondary btn-sm";
+const primary = "btn btn-primary btn-sm";
 
 export function TransitionBox({ id, options }: { id: string; options: { to: string; label: string }[] }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  if (!options.length) return <p className="text-sm text-ink-soft">Tidak ada transisi yang tersedia untuk peran Anda pada status ini.</p>;
+  if (!options.length) return <p className="text-[13.5px] leading-relaxed text-ink-soft">Tidak ada transisi yang tersedia untuk peran Anda pada status ini.</p>;
   async function go(to: string) {
     setBusy(true);
     setMsg(null);
@@ -27,15 +28,18 @@ export function TransitionBox({ id, options }: { id: string; options: { to: stri
     router.refresh();
   }
   return (
-    <div className="space-y-2">
-      <label className="block text-xs font-medium text-ink-soft" htmlFor="tnote">Catatan keputusan (wajib, minimal 5 karakter)</label>
-      <textarea id="tnote" value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="w-full rounded-lg border border-line px-3 py-2 text-sm" />
+    <div className="space-y-3">
+      <div>
+        <label className="field-label" htmlFor="tnote">Catatan keputusan</label>
+        <textarea id="tnote" value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="field" />
+        <p className="field-hint">Wajib, minimal 5 karakter.</p>
+      </div>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <button key={o.to} type="button" disabled={busy} onClick={() => go(o.to)} className={o.to === "approved" || o.to === "reviewed" ? primary : btn}>{o.label}</button>
         ))}
       </div>
-      {msg && <p role="alert" className="text-sm text-danger">{msg}</p>}
+      {msg && <p role="alert" className="text-[13px] text-danger">{msg}</p>}
     </div>
   );
 }
@@ -53,12 +57,12 @@ export function QuestionEditor({ id, text, editable }: { id: string; text: strin
     setMsg(null);
     router.refresh();
   }
-  if (!open) return <span>{text} <button type="button" onClick={() => setOpen(true)} className="ml-1 text-xs font-semibold text-brand underline underline-offset-2">ubah</button></span>;
+  if (!open) return <span>{text} <button type="button" onClick={() => setOpen(true)} className="link ml-1 text-[13px]">ubah</button></span>;
   return (
-    <span className="block space-y-1.5">
-      <textarea aria-label="Kalimat pertanyaan" value={val} onChange={(e) => setVal(e.target.value)} rows={2} className="w-full rounded-lg border border-line px-2 py-1.5 text-sm" />
+    <span className="block space-y-2">
+      <textarea aria-label="Kalimat pertanyaan" value={val} onChange={(e) => setVal(e.target.value)} rows={2} className="field" />
       <span className="flex gap-2"><button type="button" onClick={save} className={primary}>Simpan</button><button type="button" onClick={() => { setOpen(false); setVal(text); }} className={btn}>Batal</button></span>
-      {msg && <span role="alert" className="block text-xs text-danger">{msg}</span>}
+      {msg && <span role="alert" className="block text-[12.5px] text-danger">{msg}</span>}
     </span>
   );
 }
@@ -73,13 +77,13 @@ export function NewDraftBox({ id }: { id: string }) {
     router.push(`/console/standards/${encodeURIComponent(String(j.data?.id))}`);
   }
   return (
-    <div className="flex flex-wrap items-end gap-2">
+    <div className="space-y-3">
       <div>
-        <label htmlFor="nv" className="block text-xs font-medium text-ink-soft">Nomor versi draft baru</label>
-        <input id="nv" value={v} onChange={(e) => setV(e.target.value)} placeholder="mis. 1.1" className="rounded-lg border border-line px-3 py-1.5 text-sm" />
+        <label htmlFor="nv" className="field-label">Nomor versi draft baru</label>
+        <input id="nv" value={v} onChange={(e) => setV(e.target.value)} placeholder="mis. 1.1" className="field" />
       </div>
       <button type="button" onClick={go} disabled={!v} className={btn}>Salin menjadi draft</button>
-      {msg && <p role="alert" className="w-full text-sm text-danger">{msg}</p>}
+      {msg && <p role="alert" className="text-[13px] text-danger">{msg}</p>}
     </div>
   );
 }
@@ -99,18 +103,18 @@ export function ImportBox() {
   }
   return (
     <div className="space-y-3">
-      <label htmlFor="imp" className="block text-sm font-medium">Tempel JSON standar (satu standar, banyak butir)</label>
-      <textarea id="imp" value={txt} onChange={(e) => setTxt(e.target.value)} rows={8} spellCheck={false} className="w-full rounded-lg border border-line px-3 py-2 font-mono text-xs" />
-      <div className="flex gap-2">
-        <button type="button" onClick={() => go(true)} disabled={!txt.trim()} className={btn}>Periksa (pratinjau)</button>
-        <button type="button" onClick={() => go(false)} disabled={!txt.trim()} className={primary}>Impor sebagai draft</button>
+      <label htmlFor="imp" className="field-label">Tempel JSON standar (satu standar, banyak butir)</label>
+      <textarea id="imp" value={txt} onChange={(e) => setTxt(e.target.value)} rows={8} spellCheck={false} className="field font-mono text-[12.5px]" />
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => go(true)} disabled={!txt.trim()} className="btn btn-secondary">Periksa (pratinjau)</button>
+        <button type="button" onClick={() => go(false)} disabled={!txt.trim()} className="btn btn-primary">Impor sebagai draft</button>
       </div>
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
+      {err && <Notice tone="danger"><span role="alert">{err}</span></Notice>}
       {res && (
-        <div role="status" className="rounded-lg border border-line p-3 text-sm">
-          <p className="font-semibold">{res.applied ? `Diimpor: ${res.note ?? ""}` : res.ok ? "Lolos validasi (belum ditulis)." : "Ada galat validasi."} {res.summary && `${res.summary.id} · ${res.summary.indikator} butir`}</p>
-          <ul className="mt-2 list-disc space-y-0.5 pl-5">
-            {res.issues.slice(0, 30).map((i, k) => <li key={k} className={i.level === "error" ? "text-danger" : "text-warn"}><span className="font-mono text-xs">{i.where}</span>: {i.message}</li>)}
+        <div role="status" className="rounded-lg border border-line bg-subtle/50 p-3.5 text-[13.5px]">
+          <p className="font-semibold text-ink">{res.applied ? `Diimpor: ${res.note ?? ""}` : res.ok ? "Lolos validasi (belum ditulis)." : "Ada galat validasi."} {res.summary && `${res.summary.id} · ${res.summary.indikator} butir`}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {res.issues.slice(0, 30).map((i, k) => <li key={k} className={i.level === "error" ? "text-danger" : "text-warn"}><span className="font-mono text-[12px]">{i.where}</span>: {i.message}</li>)}
           </ul>
         </div>
       )}
@@ -132,12 +136,12 @@ export function VerifyBox() {
     router.refresh();
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={busy} onClick={() => go(false)} className={primary}>Verifikasi rantai sekarang</button>
-        <button type="button" disabled={busy} onClick={() => go(true)} className={btn}>Tulis jangkar lalu verifikasi</button>
+        <button type="button" disabled={busy} onClick={() => go(false)} className="btn btn-primary">{busy ? "Memverifikasi…" : "Verifikasi rantai sekarang"}</button>
+        <button type="button" disabled={busy} onClick={() => go(true)} className="btn btn-secondary">Tulis jangkar lalu verifikasi</button>
       </div>
-      {msg && <p role="status" className="text-sm text-ink-soft">{msg}</p>}
+      {msg && <Notice tone="neutral"><span role="status">{msg}</span></Notice>}
     </div>
   );
 }

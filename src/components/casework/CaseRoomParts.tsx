@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { AiModeBadge, Card, Pill, ProofBadge, SimNotice, StatusPill } from "@/components/ui";
+import { IconChevronRight } from "@/components/icons";
+import { AiModeBadge, Card, Notice, Pill, ProofBadge, SimNotice, StatusPill, TableCard } from "@/components/ui";
 import { can, type Principal } from "@/lib/auth/principal";
 import { ANSWER_LABEL, CAUSE_LABEL, TONE_CLASS } from "@/lib/labels";
 import {
@@ -15,26 +16,43 @@ import { Tag, Quote } from "./parts";
 /* Bagian-bagian ruang kasus. Semua server component; formulir memakai CommandForm (klien) ke satu pintu perintah.
    Tombol hanya ditampilkan bila peran berwenang, tetapi server tetap menegakkan wewenang di setiap perintah. */
 
+/** Bagian ruang kasus yang dapat dilipat. Judul, lencana jumlah/status, lalu isi; id dipakai sebagai tujuan tautan #bagian. */
 export function Section({ id, title, hint, children, open = true, badge }: { id?: string; title: string; hint?: ReactNode; children: ReactNode; open?: boolean; badge?: ReactNode }) {
   return (
-    <details id={id} open={open} className="group rounded-xl border border-line bg-card">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <span className="text-base font-semibold tracking-tight">{title}</span>
-        <span className="flex items-center gap-2">{badge}<span aria-hidden className="text-xs text-muted group-open:hidden">buka</span><span aria-hidden className="hidden text-xs text-muted group-open:inline">tutup</span></span>
+    <details id={id} open={open} className="group scroll-mt-24 rounded-xl border border-line bg-card">
+      <summary className="flex min-h-12 items-center gap-2.5 rounded-xl px-4 py-3 transition-colors hover:bg-subtle/60 group-open:rounded-b-none">
+        <IconChevronRight size={15} className="shrink-0 text-muted transition-transform duration-150 group-open:rotate-90" />
+        <h3 className="min-w-0 flex-1 text-[14px] font-semibold tracking-tight text-ink">{title}</h3>
+        {badge && <span className="flex shrink-0 items-center gap-2">{badge}</span>}
       </summary>
-      <div className="space-y-3 border-t border-line px-4 py-4">
-        {hint && <p className="text-sm text-ink-soft">{hint}</p>}
+      <div className="space-y-4 border-t border-line px-5 py-4">
+        {hint && <p className="max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">{hint}</p>}
         {children}
       </div>
     </details>
   );
 }
 
-export function Disclose({ label, children, tone = "secondary" }: { label: string; children: ReactNode; tone?: "secondary" | "primary" }) {
+/** Formulir/aksi yang dilipat agar tidak memenuhi layar. `primary` = aksi utama pada bagian itu. */
+export function Disclose({ label, children, tone = "secondary", quiet = false }: { label: string; children: ReactNode; tone?: "secondary" | "primary"; quiet?: boolean }) {
+  if (quiet) {
+    return (
+      <details className="group/d">
+        <summary className="inline-flex min-h-7 items-center gap-1.5 rounded-md px-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
+          <IconChevronRight size={13} className="shrink-0 transition-transform duration-150 group-open/d:rotate-90" />
+          {label}
+        </summary>
+        <div className="mt-1 rounded-lg border border-line bg-card p-4">{children}</div>
+      </details>
+    );
+  }
   return (
-    <details className="rounded-lg border border-line bg-paper/60">
-      <summary className={`cursor-pointer list-none px-3 py-1.5 text-sm font-semibold ${tone === "primary" ? "text-brand" : ""}`}>{label}</summary>
-      <div className="border-t border-line p-3">{children}</div>
+    <details className="group/d rounded-lg border border-line bg-subtle/50 open:bg-card">
+      <summary className={`flex min-h-9 items-center gap-2 rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors hover:bg-subtle ${tone === "primary" ? "text-brand-ink" : "text-ink"}`}>
+        <IconChevronRight size={14} className="shrink-0 text-muted transition-transform duration-150 group-open/d:rotate-90" />
+        {label}
+      </summary>
+      <div className="border-t border-line p-4">{children}</div>
     </details>
   );
 }
@@ -74,32 +92,32 @@ export function ClaimEvidenceBlock({ r }: { r: FindingRoom }) {
       </p>
       {pack.related && <p className="text-sm text-ink-soft">Dibandingkan dengan klaim <span className="font-mono">{pack.related.claim_no}</span> pada episode <span className="font-mono">{pack.related.episode_id}</span> ({rupiah(pack.related.amount)}).</p>}
       {pack.services.length > 0 ? (
-        <div className="overflow-x-auto rounded-lg border border-line">
-          <table className="w-full min-w-[40rem] text-left text-sm">
+        <TableCard className="rounded-lg">
+          <table className="w-full min-w-[40rem] text-left text-[13.5px]">
             <caption className="sr-only">Layanan pada rincian dan status catatan pelaksanaannya</caption>
-            <thead className="bg-paper/70 text-xs text-muted"><tr><th className="p-2">Layanan</th><th className="p-2">Waktu</th><th className="p-2">Pelaksana</th><th className="p-2 text-right">Rincian</th><th className="p-2">Catatan pelaksanaan</th></tr></thead>
-            <tbody className="divide-y divide-line">
+            <thead><tr><th className="px-3 py-2.5">Layanan</th><th className="px-3 py-2.5">Waktu</th><th className="px-3 py-2.5">Pelaksana</th><th className="px-3 py-2.5 text-right">Rincian</th><th className="px-3 py-2.5">Catatan pelaksanaan</th></tr></thead>
+            <tbody>
               {pack.services.map((s) => (
                 <tr key={s.id} className={s.flagged ? "bg-warn-soft/40" : ""}>
-                  <td className="p-2"><span className="font-medium">{s.name}</span> <span className="font-mono text-xs text-muted">{s.code}</span></td>
-                  <td className="p-2 whitespace-nowrap">{fmtDateTime(s.performed_at)}</td>
-                  <td className="p-2">{s.performer}</td>
-                  <td className="p-2 text-right tabular-nums">{rupiah(s.amount)}</td>
-                  <td className="p-2">{s.needs_record ? <><Tag t={stateTone[s.state]}>{stateText[s.state]}</Tag>{s.reasons.length > 0 && <p className="mt-1 text-xs text-ink-soft">{s.reasons.join(" ")}</p>}</> : <span className="text-xs text-muted">Tidak memerlukan lembar tersendiri</span>}</td>
+                  <td className="px-3 py-2.5"><span className="font-medium">{s.name}</span> <span className="font-mono text-[12px] text-muted">{s.code}</span></td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-ink-soft">{fmtDateTime(s.performed_at)}</td>
+                  <td className="px-3 py-2.5 text-ink-soft">{s.performer}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{rupiah(s.amount)}</td>
+                  <td className="px-3 py-2.5">{s.needs_record ? <><Tag t={stateTone[s.state]}>{stateText[s.state]}</Tag>{s.reasons.length > 0 && <p className="mt-1 text-xs text-ink-soft">{s.reasons.join(" ")}</p>}</> : <span className="text-xs text-muted">Tidak memerlukan lembar tersendiri</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </TableCard>
       ) : <p className="text-sm text-ink-soft">Tidak ada rincian layanan pada temuan ini.</p>}
-      {pack.claim && <SimNotice>Detail biaya bukan komponen klaim. Nilai klaim adalah nilai paket yang ditetapkan terpisah, sehingga jumlah rincian di atas tidak dijumlahkan atau dibandingkan dengan nilai klaim.</SimNotice>}
+      {pack.claim && <SimNotice>Nilai klaim adalah nilai paket terpisah; rincian di atas tidak dijumlahkan atau dibandingkan dengannya.</SimNotice>}
       {pack.signals.length > 0 && (
         <div>
           <p className="text-xs font-medium text-ink-soft">Dasar sinyal (skor {r.finding.score}, hanya untuk mengurutkan)</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">{pack.signals.map((s) => <li key={s.key}>{s.label}</li>)}</ul>
         </div>
       )}
-      {r.finding.limit_text && <p className="rounded-lg bg-info-soft px-3 py-2 text-sm text-info">Batas penafsiran: {r.finding.limit_text}</p>}
+      {r.finding.limit_text && <Notice tone="info" title="Batas penafsiran">{r.finding.limit_text}</Notice>}
     </div>
   );
 }
@@ -113,7 +131,7 @@ export function ParticipantBlock({ r }: { r: FindingRoom }) {
       <p className="text-xs text-muted">Identitas peserta tidak ditampilkan di sini. Jawaban "tidak ingat" atau "tidak paham" bernilai nol.</p>
       <ul className="space-y-2">
         {facts.map((f) => (
-          <li key={f.id} className={`rounded-lg border px-3 py-2 text-sm ${f.status === "superseded" ? "border-line bg-paper/60 text-muted" : "border-line bg-card"}`}>
+          <li key={f.id} className={`rounded-lg border px-3 py-2 text-sm ${f.status === "superseded" ? "border-line bg-subtle text-muted" : "border-line bg-card"}`}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{SLOT_LABEL[f.slot] ?? f.slot.replaceAll("_", " ")}</span>
               <Tag t={f.meta ? "muted" : f.value === "yes" ? "ok" : f.value === "no" ? "warn" : "info"}>{ANSWER_LABEL[f.value] ?? f.value.replaceAll("_", " ")}</Tag>
@@ -156,7 +174,7 @@ export function DocumentsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
         {documents.length === 0 ? <p className="mt-1 text-sm text-ink-soft">Belum ada dokumen yang diunggah faskes untuk temuan ini.</p> : (
           <ul className="mt-2 space-y-3">
             {documents.map((d) => (
-              <li key={d.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+              <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <a href={`/api/documents/${d.id}`} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">{d.name}</a>
                   <span className="font-mono text-xs text-muted">{d.id}</span>
@@ -204,7 +222,7 @@ export function DocumentsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
           </ul>
         )}
       </div>
-      {can(me, "evidence.upload") && can(me, "case.work") && <p className="text-xs text-muted">Dokumen yang diserahkan di luar portal dapat diunggah petugas lewat POST /api/casework/upload.</p>}
+      {can(me, "evidence.upload") && can(me, "case.work") && <p className="text-xs text-muted">Dokumen di luar portal dapat diunggah petugas lewat POST /api/casework/upload.</p>}
     </div>
   );
 }
@@ -218,7 +236,7 @@ export function LinksBlock({ r }: { r: FindingRoom }) {
       {links.length === 0 ? <p className="text-sm text-ink-soft">Belum ada bukti yang ditautkan.</p> : (
         <ul className="space-y-2">
           {links.map((l) => (
-            <li key={l.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+            <li key={l.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
               <div className="flex flex-wrap items-center gap-2"><Tag t={DIRECTION_LABEL[l.direction].tone}>{DIRECTION_LABEL[l.direction].label}</Tag><span className="font-mono text-xs text-muted">{l.id}</span><span className="text-xs text-muted">{fmtDateTime(l.linked_at)}</span></div>
               <p className="mt-1 font-medium">{nameOf(l)}</p>
               {l.quote && <p className="text-xs text-ink-soft">Kutipan: "{l.quote}"{l.page ? ` (hlm. ${l.page})` : ""}</p>}
@@ -262,7 +280,7 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const canWork = can(me, "case.work");
   return (
     <div className="space-y-3">
-      <ul className="list-disc space-y-1 pl-5 text-xs text-ink-soft">{ASSISTANT_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul>
+      <Notice tone="neutral" title="AI hanya menyarankan; petugas yang memutuskan"><details className="mt-0.5"><summary className="cursor-pointer text-[12.5px] font-medium text-ink-soft hover:text-ink">Batas peran asisten</summary><ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-[12.5px]">{ASSISTANT_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul></details></Notice>
       {!s ? <p className="text-sm text-ink-soft">Belum ada ringkasan untuk temuan ini.</p> : (
         <>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -270,7 +288,7 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
             <span>{s.mode === "live" ? `Model ${s.model ?? "-"} (${s.provider})` : s.mode === "fallback" ? "Penyusun aturan menggantikan model karena panggilan gagal atau ditolak validator" : "Penyusun berbasis aturan, bukan inferensi model"}</span>
             {s.status === "reviewed" && <Tag t="ok">Sudah dikoreksi petugas</Tag>}
           </div>
-          {r.summaryStale && <p role="status" className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">Bukti pada temuan ini berubah sejak ringkasan dibuat. Buat ringkasan baru agar sesuai kondisi terkini.</p>}
+          {r.summaryStale && <Notice tone="warn" title="Ringkasan perlu diperbarui">Bukti pada temuan ini berubah sejak ringkasan dibuat. Buat ringkasan baru agar sesuai kondisi terkini.</Notice>}
           {(Object.keys(SECTION_TITLES) as (keyof typeof SECTION_TITLES)[]).map((sec) => {
             const blocks = s.content[sec];
             if (!blocks.length) return null;
@@ -281,7 +299,7 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
                   {blocks.map((b) => {
                     const corr = [...s.corrections].reverse().find((c) => c.block_id === b.id);
                     return (
-                      <li key={b.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+                      <li key={b.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
                         {corr ? (
                           <>
                             <p>{corr.text} <Tag t="ok">Dikoreksi petugas</Tag></p>
@@ -290,7 +308,7 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
                           </>
                         ) : <p>{b.text}</p>}
                         <Refs refs={b.refs} />
-                        {canWork && !corr && <div className="mt-1.5"><Disclose label="Koreksi pernyataan ini"><CommandForm command="correct_summary" hidden={{ summaryId: s.id, blockId: b.id }} submit="Simpan koreksi" fields={[{ kind: "textarea", name: "text", label: "Pernyataan yang benar", rows: 2, required: true, defaultValue: b.text }, { kind: "text", name: "note", label: "Alasan koreksi", required: true }]} /></Disclose></div>}
+                        {canWork && !corr && <div className="mt-1.5"><Disclose label="Koreksi pernyataan ini" quiet><CommandForm command="correct_summary" hidden={{ summaryId: s.id, blockId: b.id }} submit="Simpan koreksi" fields={[{ kind: "textarea", name: "text", label: "Pernyataan yang benar", rows: 2, required: true, defaultValue: b.text }, { kind: "text", name: "note", label: "Alasan koreksi", required: true }]} /></Disclose></div>}
                       </li>
                     );
                   })}
@@ -311,7 +329,7 @@ export function SuggestionCard({ s, f, me }: { s: SuggestionRow; f: FindingRoom;
   const st = SUGGESTION_STATE_LABEL[s.state];
   const isOpen = s.state === "proposed";
   return (
-    <li className="rounded-lg border border-line px-3 py-2 text-sm">
+    <li className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
       <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{k.label}</span><Tag t={st.tone}>{st.label}</Tag><span className="font-mono text-xs text-muted">{s.id}</span></div>
       <p className="mt-1">{s.text}</p>
       <Refs refs={s.refs} />
@@ -336,7 +354,7 @@ export function SuggestionCard({ s, f, me }: { s: SuggestionRow; f: FindingRoom;
           )}
           <div className="flex flex-wrap gap-2">
             {(s.kind === "participant_confirmation" || s.kind === "record_gap") && <CommandForm command="decide_suggestion" hidden={{ suggestionId: s.id, decision: "accepted" }} submit="Terima (saya yang menindaklanjuti)" tone="secondary" compact />}
-            <Disclose label="Tidak dipakai"><CommandForm command="decide_suggestion" hidden={{ suggestionId: s.id, decision: "dismissed" }} submit="Tandai tidak dipakai" tone="secondary" fields={[{ kind: "text", name: "reason", label: "Alasan (wajib)", required: true }]} /></Disclose>
+            <Disclose label="Tidak dipakai" quiet><CommandForm command="decide_suggestion" hidden={{ suggestionId: s.id, decision: "dismissed" }} submit="Tandai tidak dipakai" tone="secondary" fields={[{ kind: "text", name: "reason", label: "Alasan (wajib)", required: true }]} /></Disclose>
           </div>
         </div>
       )}
@@ -376,7 +394,7 @@ export function ClarificationsBlock({ r, me }: { r: FindingRoom; me: Principal }
           {clarifications.map((c) => {
             const lab = CLARIFICATION_LABEL[c.status];
             return (
-              <li key={c.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+              <li key={c.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
                 <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{c.id}</span><Tag t={lab.tone} title={lab.hint}>{lab.label}</Tag><span className="text-xs text-muted">dikirim {fmtDateTime(c.sent_at)} · tenggat {fmtDateTime(c.due_at)}</span></div>
                 <p className="mt-1 text-ink-soft">{c.issue}</p>
                 {c.requested_docs.length > 0 && <p className="text-xs text-muted">Diminta: {c.requested_docs.join("; ")}</p>}
@@ -411,10 +429,10 @@ export function ProofBlock({ r, me }: { r: FindingRoom; me: Principal }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2"><ProofBadge status={f.proof_status} /><span className="text-sm text-ink-soft">Verifikator mengusulkan, reviewer yang berbeda menyetujui. Tenggat klarifikasi yang lewat tidak membuktikan apa pun.</span></div>
       {!final && (
-        <ul className="grid gap-1 text-sm sm:grid-cols-3">
-          <li className="rounded-lg bg-paper/70 px-3 py-2"><span className="text-xs text-muted">Bukti pendukung tertaut</span><br /><strong>{rr.supports}</strong> {rr.supports ? "" : <Tag t="warn">belum ada</Tag>}</li>
-          <li className="rounded-lg bg-paper/70 px-3 py-2"><span className="text-xs text-muted">Hak jawab faskes</span><br />{rr.replySatisfied ? <Tag t="ok">terpenuhi</Tag> : <Tag t="warn">belum</Tag>}</li>
-          <li className="rounded-lg bg-paper/70 px-3 py-2"><span className="text-xs text-muted">Pencarian tanpa hasil dicatat</span><br /><strong>{searchesNotFound}</strong> {searchesNotFound ? "" : <span className="text-xs text-muted">(syarat "tidak dapat dibuktikan")</span>}</li>
+        <ul className="grid gap-2 text-[13.5px] sm:grid-cols-3">
+          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Bukti pendukung tertaut</span><br /><strong>{rr.supports}</strong> {rr.supports ? "" : <Tag t="warn">belum ada</Tag>}</li>
+          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Hak jawab faskes</span><br />{rr.replySatisfied ? <Tag t="ok">terpenuhi</Tag> : <Tag t="warn">belum</Tag>}</li>
+          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Pencarian tanpa hasil dicatat</span><br /><strong>{searchesNotFound}</strong> {searchesNotFound ? "" : <span className="text-xs text-muted">(syarat "tidak dapat dibuktikan")</span>}</li>
         </ul>
       )}
       {f.proof_status === "signal" && can(me, "case.work") && <CommandForm command="start_review" hidden={{ findingId: f.id }} submit="Mulai tinjauan" tone="secondary" />}
@@ -443,9 +461,9 @@ export function ProofBlock({ r, me }: { r: FindingRoom; me: Principal }) {
         <Disclose label="Buka ulang temuan (ada bukti baru)"><CommandForm command="reopen_finding" hidden={{ findingId: f.id }} submit="Buka ulang" tone="secondary" fields={[{ kind: "textarea", name: "reason", label: "Alasan membuka ulang", rows: 2, required: true }]} /></Disclose>
       )}
       {history.length > 0 && (
-        <details className="text-sm"><summary className="cursor-pointer font-medium">Riwayat usulan dan keputusan ({history.length})</summary>
-          <ul className="mt-2 space-y-1.5">{history.map((d) => <li key={d.id} className="rounded-lg bg-paper/70 px-3 py-1.5"><span className="font-medium">{d.kind === "proof_proposal" ? "Usulan" : d.kind === "reopen" ? "Dibuka ulang" : d.decision === "rejected" ? "Usulan ditolak" : "Disetujui"}</span>{d.decision && d.kind !== "proof_approval" && <> · {OUTCOME_LABEL[d.decision] ?? d.decision}</>}{d.kind === "proof_proposal" && <> · <span className="text-xs text-muted">{d.state === "pending" ? "menunggu" : d.state === "approved" ? "disetujui" : "ditolak"}</span></>}<br /><span className="text-ink-soft">{d.reason}</span><br /><span className="text-xs text-muted">{dec(d)}</span></li>)}</ul>
-        </details>
+        <Disclose label={`Riwayat usulan dan keputusan (${history.length})`}>
+          <ul className="space-y-1.5 text-[13.5px]">{history.map((d) => <li key={d.id} className="rounded-lg bg-subtle px-3 py-1.5"><span className="font-medium">{d.kind === "proof_proposal" ? "Usulan" : d.kind === "reopen" ? "Dibuka ulang" : d.decision === "rejected" ? "Usulan ditolak" : "Disetujui"}</span>{d.decision && d.kind !== "proof_approval" && <> · {OUTCOME_LABEL[d.decision] ?? d.decision}</>}{d.kind === "proof_proposal" && <> · <span className="text-xs text-muted">{d.state === "pending" ? "menunggu" : d.state === "approved" ? "disetujui" : "ditolak"}</span></>}<br /><span className="text-ink-soft">{d.reason}</span><br /><span className="text-xs text-muted">{dec(d)}</span></li>)}</ul>
+        </Disclose>
       )}
     </div>
   );
@@ -495,7 +513,7 @@ export function ClaimReviewBlock({ r, me }: { r: FindingRoom; me: Principal }) {
     <div className="space-y-3">
       <SimNotice>Ini panel terpisah dari status temuan pelayanan. Pilihan di bawah hanya DICATAT sebagai simulasi oleh petugas: tidak ada pembayaran, koreksi klaim, atau sanksi yang dijalankan ke sistem mana pun, dan AI tidak memilihnya.</SimNotice>
       {r.claimReviews.length > 0 && (
-        <ul className="space-y-2">{r.claimReviews.map((d) => <li key={d.id} className="rounded-lg border border-line px-3 py-2 text-sm"><div className="flex flex-wrap items-center gap-2"><Tag t="warn">Simulasi</Tag><span className="font-semibold">{CLAIM_REVIEW_LABEL[d.decision as keyof typeof CLAIM_REVIEW_LABEL]?.label ?? d.decision}</span>{d.correction_amount != null && <span>{rupiah(d.correction_amount)}</span>}</div><p className="text-ink-soft">{d.reason}</p><p className="text-xs text-muted">{dec(d)}</p></li>)}</ul>
+        <ul className="space-y-2">{r.claimReviews.map((d) => <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]"><div className="flex flex-wrap items-center gap-2"><Tag t="warn">Simulasi</Tag><span className="font-semibold">{CLAIM_REVIEW_LABEL[d.decision as keyof typeof CLAIM_REVIEW_LABEL]?.label ?? d.decision}</span>{d.correction_amount != null && <span>{rupiah(d.correction_amount)}</span>}</div><p className="text-ink-soft">{d.reason}</p><p className="text-xs text-muted">{dec(d)}</p></li>)}</ul>
       )}
       {!r.canClaimReview ? <p className="text-sm text-ink-soft">Keputusan klaim dapat dicatat setelah pembuktian temuan selesai.</p> : can(me, "claimreview.record") ? (
         <Disclose label="Catat keputusan klaim (simulasi)">
@@ -518,7 +536,7 @@ export function DisputesBlock({ r, me }: { r: FindingRoom; me: Principal }) {
       {r.disputes.map((d) => {
         const l = DISPUTE_LABEL[d.status];
         return (
-          <li key={d.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+          <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
             <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{d.id}</span><Tag t={l.tone}>{l.label}</Tag><span className="text-xs text-muted">{fmtDateTime(d.created_at)}</span></div>
             <Quote by="Bantahan faskes">{d.text}</Quote>
             {d.response && <p className="mt-1 text-ink-soft">Tanggapan: {d.response}</p>}
@@ -544,7 +562,7 @@ export function ActionsBlock({ actions, findings, me, today }: { actions: Action
       {actions.length === 0 && <p className="text-sm text-ink-soft">Belum ada tindakan perbaikan. Tindakan disusun faskes (atau petugas) setelah temuan terbukti. Hasilnya diukur ulang dan dikonfirmasi peserta sebelum ditutup.</p>}
       <ul className="space-y-3">
         {actions.map((a) => (
-          <li id={a.id} key={a.id} className="rounded-lg border border-line px-3 py-2 text-sm">
+          <li id={a.id} key={a.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
             <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{a.id}</span><Tag t={a.status === "closed" ? "ok" : a.status === "follow_up_pending" ? "info" : "warn"}>{label[a.status as keyof typeof label]}</Tag><span className="text-xs text-muted">pemilik {a.owner ?? "-"} · target {fmtDate(a.target_date)}{a.status === "open" || a.status === "in_progress" ? (a.target_date && a.target_date.slice(0, 10) < today ? " · lewat target" : "") : ""}</span></div>
             <p className="mt-1">{a.description}</p>
             {a.remeasure_plan && <p className="text-xs text-ink-soft">Rencana pengukuran ulang: {a.remeasure_plan}</p>}
@@ -552,7 +570,7 @@ export function ActionsBlock({ actions, findings, me, today }: { actions: Action
             {a.followups.length > 0 && (
               <ul className="mt-2 space-y-1.5">
                 {a.followups.map((u) => (
-                  <li key={u.id} className="rounded-lg bg-paper/70 px-3 py-1.5">
+                  <li key={u.id} className="rounded-lg bg-subtle px-3 py-1.5">
                     <span className="font-medium">{FOLLOWUP_LABEL[u.kind] ?? u.kind}</span> · <Tag t={u.status === "done" ? "ok" : u.status === "skipped" ? "muted" : "warn"}>{u.status === "done" ? (u.outcome === "resolved" ? "Selesai: teratasi" : "Selesai: masih ada kendala") : u.status === "skipped" ? "Dilewati" : "Menunggu"}</Tag> <span className="text-xs text-muted">jatuh tempo {fmtDate(u.due_at)}</span>
                     {u.note && <p className="text-xs text-ink-soft">{u.note}</p>}
                     {u.status === "pending" && u.kind !== "participant_confirmation" && can(me, "case.work") && (
@@ -586,17 +604,31 @@ export function ActionsBlock({ actions, findings, me, today }: { actions: Action
 }
 
 /* ---------- Linimasa, catatan ---------- */
-export function TimelineBlock({ items }: { items: { at: string; kind: string; kindLabel: string; text: string; actor?: string | null }[] }) {
+type TimelineItemT = { at: string; kind: string; kindLabel: string; text: string; actor?: string | null };
+function TimelineList({ items }: { items: TimelineItemT[] }) {
   return (
-    <ol className="relative space-y-0 border-l border-line pl-4 text-sm">
+    <ol className="relative space-y-0 border-l border-line pl-5 text-[13.5px]">
       {items.map((t, i) => (
-        <li key={i} className="relative pb-3">
-          <span aria-hidden className="absolute -left-[1.3rem] top-1.5 h-2 w-2 rounded-full bg-brand/60" />
-          <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted tabular-nums">{fmtDateTime(t.at)}</span><StatusPill tone="muted">{t.kindLabel}</StatusPill></div>
-          <p>{t.text}{t.actor ? <span className="text-xs text-muted"> · {t.actor.split(":")[1] ?? t.actor}</span> : null}</p>
+        <li key={i} className="relative pb-4 last:pb-0">
+          <span aria-hidden className="absolute -left-[1.56rem] top-1.5 h-2 w-2 rounded-full bg-brand/60 ring-4 ring-card" />
+          <div className="flex flex-wrap items-center gap-2"><span className="text-[12px] tabular-nums text-muted">{fmtDateTime(t.at)}</span><StatusPill tone="muted">{t.kindLabel}</StatusPill></div>
+          <p className="mt-0.5">{t.text}{t.actor ? <span className="text-[12px] text-muted"> · {t.actor.split(":")[1] ?? t.actor}</span> : null}</p>
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Linimasa urut waktu. Peristiwa terbaru tampil; yang lebih lama dilipat agar halaman tidak terlalu panjang. */
+export function TimelineBlock({ items }: { items: TimelineItemT[] }) {
+  const KEEP = 8;
+  if (items.length <= KEEP) return <TimelineList items={items} />;
+  const older = items.slice(0, items.length - KEEP);
+  return (
+    <div className="space-y-4">
+      <Disclose label={`Peristiwa sebelumnya (${older.length})`}><TimelineList items={older} /></Disclose>
+      <TimelineList items={items.slice(-KEEP)} />
+    </div>
   );
 }
 
@@ -604,7 +636,7 @@ export function NotesBlock({ caseId, notes, findings, me }: { caseId: string; no
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted">Catatan internal tidak pernah terlihat oleh faskes maupun peserta.</p>
-      {notes.length === 0 ? <p className="text-sm text-ink-soft">Belum ada catatan.</p> : <ul className="space-y-2">{notes.map((n) => <li key={n.id} className="rounded-lg border border-line px-3 py-2 text-sm"><p>{n.text}</p><p className="text-xs text-muted">{n.author_id.split(":")[1]} · {fmtDateTime(n.at)}{n.finding_id ? ` · ${n.finding_id}` : ""}</p></li>)}</ul>}
+      {notes.length === 0 ? <p className="text-sm text-ink-soft">Belum ada catatan.</p> : <ul className="space-y-2">{notes.map((n) => <li key={n.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]"><p>{n.text}</p><p className="text-xs text-muted">{n.author_id.split(":")[1]} · {fmtDateTime(n.at)}{n.finding_id ? ` · ${n.finding_id}` : ""}</p></li>)}</ul>}
       {can(me, "case.work") && (
         <CommandForm command="add_note" hidden={{ caseId }} submit="Tambah catatan" tone="secondary" fields={[
           { kind: "select", name: "findingId", label: "Terkait temuan (opsional)", options: [{ value: "", label: "Seluruh kasus" }, ...findings.map((f) => ({ value: f.finding.id, label: f.finding.id }))] },

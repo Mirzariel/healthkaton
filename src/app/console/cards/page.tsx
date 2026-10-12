@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Disclosure } from "@/components/analytics/blocks";
 import { PolicyEditor, RecomputeButton } from "@/components/pkbi/CardForms";
-import { Card, EmptyState, Forbidden, PageHeader, SectionTitle, SimNotice, SourceBadge } from "@/components/ui";
+import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, SimNotice, SourceBadge, StatusPill, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { CARD_LIMITS, getActiveCardPolicy, listCardPolicies, listCards, parseParams, periodLabel } from "@/lib/cards/compute";
 import { getDb } from "@/lib/db";
@@ -22,50 +23,63 @@ export default async function CardsPage() {
   const open = cards.reduce((n, c) => n + c.disputes.filter((d) => d.status === "open").length, 0);
   return (
     <>
-      <PageHeader title="Kartu pembinaan faskes" eyebrow="Mutu dan keuangan" purpose="Alat visibilitas untuk pembinaan dan review terjadwal. Setiap kartu menyertakan angka mentah, penyebut, pembanding sejawat, dan alasannya.">
+      <PageHeader title="Kartu pembinaan faskes" eyebrow="Mutu dan keuangan" purpose="Alat pembinaan dan review terjadwal, dengan angka mentah dan pembanding sejawat.">
         {can(me, "cards.configure") && <RecomputeButton />}
       </PageHeader>
       <SimNotice>{CARD_LIMITS} Versi parameter {policy.id} berstatus <strong>{policy.status === "validated" ? "tervalidasi" : "DRAFT"}</strong>: {params.label}</SimNotice>
 
-      <section className="mt-6 space-y-3">
-        <SectionTitle title="Kartu per faskes dan periode" hint={`Periode: ${params.period === "quarter" ? "kuartal" : "bulan"}. Kartu kuning/merah adalah dasar pembinaan, bukan indikasi fraud. ${open ? `${open} bantahan menunggu jawaban.` : ""}`}>
+      <Section className="mt-8">
+        <SectionTitle title="Kartu per faskes dan periode" hint={`Per ${params.period === "quarter" ? "kuartal" : "bulan"}. Kuning/merah = dasar pembinaan, bukan indikasi fraud.${open ? ` ${open} bantahan menunggu jawaban.` : ""}`}>
           <SourceBadge source="simulated" />
         </SectionTitle>
-        <Card className="overflow-x-auto">
+        <TableCard label="Kartu per faskes dan periode">
           {cards.length === 0 ? <EmptyState title="Belum ada kartu">Hitung ulang kartu bila data sudah tersedia.</EmptyState> : (
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted"><tr><th className="p-3">Faskes</th>{periods.map((p) => <th key={p} className="p-3">{periodLabel(p)}</th>)}</tr></thead>
-              <tbody className="divide-y divide-line">
+            <table className="w-full text-left text-[13.5px]">
+              <thead><tr><th className="px-4 py-2.5">Faskes</th>{periods.map((p) => <th key={p} className="px-4 py-2.5">{periodLabel(p)}</th>)}</tr></thead>
+              <tbody>
                 {facilities.map(([id, name]) => (
                   <tr key={id}>
-                    <td className="p-3"><Link className="font-semibold underline-offset-4 hover:underline" href={`/console/cards/${id}`}>{name}</Link></td>
-                    {periods.map((p) => { const c = cell.get(`${id}|${p}`); return <td key={p} className="p-3">{c ? <Link href={`/console/cards/${id}?period=${p}`}><LevelPill level={c.level} /></Link> : <span className="text-muted">-</span>}</td>; })}
+                    <td className="px-4 py-3"><Link className="font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current" href={`/console/cards/${id}`}>{name}</Link></td>
+                    {periods.map((p) => { const c = cell.get(`${id}|${p}`); return <td key={p} className="px-4 py-3">{c ? <Link href={`/console/cards/${id}?period=${p}`} className="inline-block rounded-md" aria-label={`${name}, ${periodLabel(p)}`}><LevelPill level={c.level} /></Link> : <span className="text-muted">-</span>}</td>; })}
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </Card>
-      </section>
+        </TableCard>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-ink-soft" aria-label="Keterangan level kartu">
+          <span className="text-muted">Level:</span>
+          <LevelPill level="none" /><LevelPill level="yellow" /><LevelPill level="red" /><LevelPill level="insufficient_data" />
+        </div>
+      </Section>
+
+      <Section className="mt-10">
+        <Disclosure title="Cara membaca kartu">
+          <ul className="list-disc space-y-2 pl-5 text-[13.5px] leading-relaxed text-ink-soft">
+            <li>Faskes dibandingkan hanya dengan faskes sejawat (kelompok yang sama) pada periode yang sama. Bila sejawat kurang dari {params.min_peers}, kartu menjadi “Data belum cukup”, bukan hijau.</li>
+            <li>Kuning bila metrik melebihi {params.yellow_ratio}× pembanding dan lantai. Merah bila sedikitnya {params.min_metrics_for_red} metrik melebihi {params.red_ratio}× pembanding.</li>
+            <li>Kartu tidak pernah mengubah klaim, pembayaran, atau status kasus.</li>
+          </ul>
+        </Disclosure>
+      </Section>
 
       {can(me, "cards.configure") && (
-        <section className="mt-8 space-y-3">
-          <SectionTitle title="Parameter kartu" hint="Mengubah ambang membuat versi draft baru; versi lama tidak diubah dan tidak ada tombol 'tervalidasi' di aplikasi ini." />
-          <Card className="p-4">
-            <ul className="mb-4 space-y-1 text-sm text-ink-soft">{listCardPolicies(db).map((v) => <li key={v.id}><span className="font-mono text-xs">{v.id}</span> · {v.status === "validated" ? "tervalidasi" : "draft"}{v.id === policy.id ? " · aktif" : ""}</li>)}</ul>
-            <details><summary className="cursor-pointer text-sm font-semibold">Buat versi parameter baru</summary><div className="mt-3"><PolicyEditor initial={params} /></div></details>
+        <Section className="mt-10">
+          <SectionTitle title="Parameter kartu" hint="Mengubah ambang membuat versi draft baru; tidak ada tombol “tervalidasi” di aplikasi ini." />
+          <Card>
+            <ul className="divide-y divide-line">
+              {listCardPolicies(db).map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-[13.5px]">
+                  <span className="font-mono text-[12px]">{v.id}</span>
+                  <StatusPill tone={v.status === "validated" ? "ok" : "muted"}>{v.status === "validated" ? "tervalidasi" : "draft"}</StatusPill>
+                  {v.id === policy.id && <StatusPill tone="info" dot={false}>aktif</StatusPill>}
+                </li>
+              ))}
+            </ul>
           </Card>
-        </section>
+          <Disclosure title="Buat versi parameter baru"><PolicyEditor initial={params} /></Disclosure>
+        </Section>
       )}
-
-      <section className="mt-8 space-y-2 text-sm text-ink-soft">
-        <SectionTitle title="Cara membaca" />
-        <ul className="list-disc space-y-1 pl-5">
-          <li>Faskes dibandingkan hanya dengan faskes sejawat (kelompok yang sama) pada periode yang sama. Bila sejawat kurang dari {params.min_peers}, kartu menjadi “Data belum cukup”, bukan hijau.</li>
-          <li>Kuning bila metrik melebihi {params.yellow_ratio}× pembanding dan lantai. Merah bila sedikitnya {params.min_metrics_for_red} metrik melebihi {params.red_ratio}× pembanding.</li>
-          <li>Kartu tidak pernah mengubah klaim, pembayaran, atau status kasus.</li>
-        </ul>
-      </section>
     </>
   );
 }

@@ -8,7 +8,7 @@ function Svg({ children, size = 24, className }: { children: ReactNode; size?: n
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.4}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -116,5 +116,47 @@ export const IconList = (p: P) => (
   <Svg {...p}>
     <path d="M9 7h10M9 12h10M9 17h10" />
     <path d="M5 7h.01M5 12h.01M5 17h.01" />
+  </Svg>
+);
+
+export const IconHome = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" />
+  </Svg>
+);
+export const IconFlag = (p: P) => (
+  <Svg {...p}>
+    <path d="M5.5 20.5v-16M5.5 4.5h11l-2 4 2 4h-11" />
+  </Svg>
+);
+export const IconHistory = (p: P) => (
+  <Svg {...p}>
+    <path d="M4.5 12a7.500 7.500 0 1 0 2.200-5.300L4.500 9" />
+    <path d="M4.500 4.500V9H9M12 8v4l2.500 2.500" />
+  </Svg>
+);
+export const IconHelp = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.500" />
+    <circle cx="12" cy="12" r="3.200" />
+    <path d="m6 6 3.800 3.800M18 6l-3.800 3.800M6 18l3.800-3.800M18 18l-3.800-3.800" />
+  </Svg>
+);
+export const IconEdit = (p: P) => (
+  <Svg {...p}>
+    <path d="M5 19h3.500L19 8.500a2.100 2.100 0 0 0-3-3L5.500 16z" />
+    <path d="m14.500 7 2.500 2.500" />
+  </Svg>
+);
+export const IconAlert = (p: P) => (
+  <Svg {...p}>
+    <path d="M10.300 4.800 3.600 16.500A2 2 0 0 0 5.300 19.500h13.400a2 2 0 0 0 1.700-3L13.700 4.800a2 2 0 0 0-3.400 0z" />
+    <path d="M12 10v3.500M12 16.500h.01" />
+  </Svg>
+);
+export const IconSend = (p: P) => (
+  <Svg {...p}>
+    <path d="M5 12 19 5l-4.500 14-3-5.500z" />
+    <path d="m11.500 13.500 3-3" />
   </Svg>
 );

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AiModeBadge, Card, EmptyState, Forbidden, PageHeader, Pill, SimNotice } from "@/components/ui";
+import { FilterField } from "@/components/analytics/blocks";
+import { AiModeBadge, EmptyState, Forbidden, PageHeader, Pill, SimNotice, TableCard, Toolbar } from "@/components/ui";
 import { listSessions } from "@/lib/ai/admin";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
-import { TONE_CLASS } from "@/lib/labels";
+import { SESSION_LABEL, STAGE_SHORT, TONE_CLASS, type SessionStatus, type Stage } from "@/lib/labels";
 import { getPrincipal } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
@@ -17,39 +18,66 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const f = { status: STATUSES.includes(sp.status ?? "") ? sp.status : undefined, stage: STAGES.includes(sp.stage ?? "") ? sp.stage : undefined, ai_mode: ["live", "simulated", "fallback"].includes(sp.ai_mode ?? "") ? sp.ai_mode : undefined };
   const { rows, total } = listSessions(getDb(), me, { ...f, limit: 100 });
-  const sel = "rounded-lg border border-line bg-card px-3 py-2 text-sm";
+  const filtered = !!(f.status || f.stage || f.ai_mode);
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Riwayat sesi survei" purpose="Setiap sesi dapat ditelusuri per giliran: pertanyaan, jawaban, saran AI, hasil validator, dan konfirmasi peserta. Peserta ditampilkan sebagai pseudonim." />
-      <form className="mb-4 flex flex-wrap items-end gap-2" role="search">
-        <label className="text-xs text-ink-soft">Status<select name="status" defaultValue={f.status ?? ""} className={`${sel} mt-1 block`}><option value="">Semua</option>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        <label className="text-xs text-ink-soft">Tahap<select name="stage" defaultValue={f.stage ?? ""} className={`${sel} mt-1 block`}><option value="">Semua</option>{STAGES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        <label className="text-xs text-ink-soft">Mode AI terakhir<select name="ai_mode" defaultValue={f.ai_mode ?? ""} className={`${sel} mt-1 block`}><option value="">Semua</option><option value="simulated">Simulasi</option><option value="live">AI langsung</option><option value="fallback">Fallback</option></select></label>
-        <button className="rounded-lg border border-line bg-card px-3 py-2 text-sm font-semibold">Terapkan</button>
-      </form>
-      <p className="mb-2 text-sm text-ink-soft">Menampilkan {rows.length} dari {total} sesi.</p>
-      <Card className="overflow-x-auto">
-        {rows.length === 0 ? <EmptyState title="Tidak ada sesi yang cocok" /> : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted"><tr><th className="p-3">Sesi</th><th className="p-3">Peserta</th><th className="p-3">Tahap</th><th className="p-3">Status</th><th className="p-3">Mode AI</th><th className="p-3 text-right">Giliran</th><th className="p-3 text-right">Ditolak validator</th><th className="p-3 text-right">Koreksi</th></tr></thead>
-            <tbody className="divide-y divide-line">
+      <PageHeader eyebrow="Standar dan AI" title="Riwayat sesi survei" purpose="Telusuri tiap sesi per giliran. Peserta tampil sebagai pseudonim." />
+      <Toolbar className="mb-3">
+        <form className="contents" role="search" aria-label="Filter sesi">
+          <FilterField label="Status" className="w-full sm:w-44">
+            <select name="status" defaultValue={f.status ?? ""} className="field"><option value="">Semua</option>{STATUSES.map((s) => <option key={s} value={s}>{SESSION_LABEL[s as SessionStatus] ?? s}</option>)}</select>
+          </FilterField>
+          <FilterField label="Tahap" className="w-full sm:w-44">
+            <select name="stage" defaultValue={f.stage ?? ""} className="field"><option value="">Semua</option>{STAGES.map((s) => <option key={s} value={s}>{STAGE_SHORT[s as Stage] ?? s}</option>)}</select>
+          </FilterField>
+          <FilterField label="Mode AI terakhir" className="w-full sm:w-48">
+            <select name="ai_mode" defaultValue={f.ai_mode ?? ""} className="field"><option value="">Semua</option><option value="simulated">Simulasi</option><option value="live">AI langsung</option><option value="fallback">Fallback</option></select>
+          </FilterField>
+          <div className="flex gap-2">
+            <button className="btn btn-primary">Terapkan</button>
+            {filtered && <Link href="/console/ai/sessions" className="btn btn-ghost">Atur ulang</Link>}
+          </div>
+        </form>
+      </Toolbar>
+      <p className="mb-2 text-[13px] text-ink-soft">Menampilkan <span className="tabular-nums font-medium text-ink">{rows.length}</span> dari <span className="tabular-nums font-medium text-ink">{total}</span> sesi{filtered ? " yang cocok dengan filter" : ""}.</p>
+      <TableCard label="Daftar sesi survei">
+        {rows.length === 0 ? <EmptyState title="Tidak ada sesi yang cocok">Ubah atau atur ulang filter untuk melihat sesi lain.</EmptyState> : (
+          <table className="w-full text-left text-[13.5px]">
+            <thead>
+              <tr>
+                <th className="px-4 py-2.5">Sesi</th>
+                <th className="hidden px-4 py-2.5 md:table-cell">Peserta</th>
+                <th className="hidden px-4 py-2.5 sm:table-cell">Tahap</th>
+                <th className="hidden px-4 py-2.5 sm:table-cell">Status</th>
+                <th className="px-4 py-2.5">Mode AI</th>
+                <th className="px-4 py-2.5 text-right">Giliran</th>
+                <th className="hidden px-4 py-2.5 text-right sm:table-cell" title="Saran fakta yang ditolak validator">Ditolak validator</th>
+                <th className="hidden px-4 py-2.5 text-right sm:table-cell">Koreksi</th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="p-3"><Link href={`/console/ai/sessions/${r.id}`} className="font-mono text-xs font-semibold text-brand underline underline-offset-2">{r.id}</Link><span className="block text-xs text-muted">{r.facility_name}</span></td>
-                  <td className="p-3">{r.pseudonym}{r.respondent_role !== "self" && <Pill className={`ml-1 ${TONE_CLASS.info}`}>pendamping</Pill>}</td>
-                  <td className="p-3">{r.stage_label}{r.uses_draft && <Pill className={`ml-1 ${TONE_CLASS.warn}`} title="Memakai butir standar berstatus draft">draft</Pill>}</td>
-                  <td className="p-3">{r.status_label}</td>
-                  <td className="p-3">{r.ai_mode_last ? <AiModeBadge mode={r.ai_mode_last as "live" | "simulated" | "fallback"} /> : <span className="text-muted">—</span>}</td>
-                  <td className="p-3 text-right tabular-nums">{r.turns}</td>
-                  <td className="p-3 text-right tabular-nums">{r.rejected}</td>
-                  <td className="p-3 text-right tabular-nums">{r.corrections}</td>
+                  <td className="min-w-40 px-4 py-3">
+                    <Link href={`/console/ai/sessions/${r.id}`} className="whitespace-nowrap font-mono text-[12.5px] font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current">{r.id}</Link>
+                    <span className="block text-[12px] text-muted">{r.facility_name}</span>
+                    <span className="block text-[12px] text-muted md:hidden">{r.pseudonym}</span>
+                    <span className="block text-[12px] text-muted sm:hidden">{r.stage_label}{r.uses_draft ? ", draft" : ""}</span>
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">{r.pseudonym}{r.respondent_role !== "self" && <Pill className={`ml-1.5 ${TONE_CLASS.info}`}>pendamping</Pill>}</td>
+                  <td className="hidden px-4 py-3 sm:table-cell">{r.stage_label}{r.uses_draft && <Pill className={`ml-1.5 ${TONE_CLASS.warn}`} title="Memakai butir standar berstatus draft">draft</Pill>}</td>
+                  <td className="hidden px-4 py-3 sm:table-cell">{r.status_label}</td>
+                  <td className="px-4 py-3">{r.ai_mode_last ? <AiModeBadge mode={r.ai_mode_last as "live" | "simulated" | "fallback"} /> : <span className="text-muted">—</span>}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{r.turns}</td>
+                  <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.rejected}</td>
+                  <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.corrections}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </Card>
-      <div className="mt-4"><SimNotice>Jawaban mentah peserta hanya tampil pada halaman jejak untuk peran dengan wewenang ai.view dan tidak ditulis ke log umum.</SimNotice></div>
+      </TableCard>
+      <div className="mt-4"><SimNotice>Jawaban mentah hanya tampil di halaman jejak (wewenang ai.view) dan tidak masuk log umum.</SimNotice></div>
     </>
   );
 }

@@ -1,114 +1,135 @@
 import Link from "next/link";
-import { Brand } from "@/components/Brand";
-import { SourceBadge } from "@/components/ui";
+import { LandingNav } from "@/components/landing/Nav";
+import { Photo } from "@/components/landing/Photo";
+import { FinalSection, Footer, HowSection, LimitsSection, PrinciplesSection, SidesSection, ThesisSection, WardBand, WRAP } from "@/components/landing/Sections";
+import { Theater, type TheaterData } from "@/components/landing/Theater";
 import { getAdapters } from "@/lib/adapters";
 import { liveAvailable } from "@/lib/ai/invocations";
 import { getDb } from "@/lib/db";
-import { FINDING_LABEL, PROOF_LABEL, type FindingType, type ProofStatus } from "@/lib/labels";
-import { SURFACES } from "@/lib/nav";
+import { fmtDate, rupiah } from "@/lib/dates";
+import type { ProofStatus } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
-const STAGES = [
-  ["Sebelum layanan", "Peserta menjawab beberapa pertanyaan singkat tentang apa yang dijanjikan dan diharapkan."],
-  ["Selama layanan", "Pertanyaan menyesuaikan apa yang sedang terjadi, tanpa menyebut diagnosis yang belum Anda ketahui."],
-  ["Setelah layanan", "Peserta mengonfirmasi apa yang benar-benar diterima. “Tidak ingat” dan “tidak paham” tidak dihitung sebagai jawaban."],
-  ["Konfirmasi terarah", "Hanya bila ada tanda yang perlu dipastikan: satu pertanyaan pendek tentang satu layanan."],
-] as const;
-
-const PRINCIPLES = [
-  "Penyebab baru dibicarakan setelah masalah terbukti dan faskes sempat menjawab.",
-  "Tanda awal disebut sinyal, bukan kesimpulan. Bahasa dijaga netral.",
-  "Jawaban “tidak tahu”, “tidak paham”, atau tidak menjawab tidak menambah kecurigaan.",
-  "Kepuasan peserta tidak pernah menjadi dasar indikasi.",
-  "Tidak ada pembayaran, koreksi klaim, atau sanksi otomatis. Keputusan ada pada manusia.",
-  "Setiap perubahan tercatat di jejak audit berantai hash.",
-];
+const clean = (s: string) => s.replace(/\s*\(simulasi\)\s*$/i, "");
 
 export default function Home() {
   const db = getDb();
-  const hero = db.prepare("SELECT f.type, f.summary, f.proof_status FROM findings f WHERE f.episode_id IN ('E-0001','E-0002') ORDER BY f.id").all() as { type: FindingType; summary: string; proof_status: ProofStatus }[];
+
+  // Episode Bu Sari (E-0001): temuan, kasus, klaim, dan pertanyaan terarah yang sama dengan konsol dan aplikasi peserta.
+  const f = db
+    .prepare(
+      `SELECT f.id, f.title, f.proof_status, f.case_id, c.priority, c.assignee_id, fa.name facility, e.dx_text, e.admit_at, e.discharge_at
+       FROM findings f JOIN cases c ON c.id = f.case_id JOIN facilities fa ON fa.id = f.facility_id JOIN episodes e ON e.id = f.episode_id
+       WHERE f.episode_id = 'E-0001' ORDER BY f.id LIMIT 1`,
+    )
+    .get() as { id: string; title: string; proof_status: ProofStatus; case_id: string; priority: number; assignee_id: string | null; facility: string; dx_text: string | null; admit_at: string | null; discharge_at: string | null } | undefined;
+  const assignee = f?.assignee_id ? (db.prepare("SELECT name FROM users WHERE id = ?").get(f.assignee_id.split(":")[1]) as { name: string } | undefined)?.name ?? null : null;
+
+  const inv = db.prepare("SELECT subject_json FROM invitations WHERE episode_id = 'E-0001' AND mode = 'directed' ORDER BY created_at DESC LIMIT 1").get() as { subject_json: string | null } | undefined;
+  let subject: { service_id?: string; service_lay?: string; when?: string } | null = null;
+  try {
+    subject = inv?.subject_json ? JSON.parse(inv.subject_json) : null;
+  } catch {
+    subject = null;
+  }
+  const svc = subject?.service_id ? (db.prepare("SELECT name, amount FROM services WHERE id = ?").get(subject.service_id) as { name: string; amount: number } | undefined) : undefined;
+  const claim = db.prepare("SELECT claim_no FROM claims WHERE episode_id = 'E-0001' ORDER BY submitted_at LIMIT 1").get() as { claim_no: string } | undefined;
+  const documented = subject?.service_id ? (db.prepare("SELECT COUNT(*) c FROM evidence WHERE episode_id = 'E-0001' AND service_id = ?").get(subject.service_id) as { c: number }).c > 0 : false;
+  const auditCount = (db.prepare("SELECT COUNT(*) c FROM audit_log").get() as { c: number }).c;
+
+  const theater: TheaterData | null = f
+    ? {
+        findingId: f.id,
+        caseId: f.case_id,
+        title: svc ? f.title.replace(/:\s*[A-Z0-9_-]+$/, `: ${svc.name.toLowerCase()}`) : f.title,
+        proof: f.proof_status,
+        priority: f.priority,
+        assignee: assignee ? assignee.split(",")[0] : null,
+        facility: clean(f.facility),
+        diagnosis: f.dx_text,
+        stay: f.admit_at && f.discharge_at ? `${fmtDate(f.admit_at)} sampai ${fmtDate(f.discharge_at)}` : null,
+        claimNo: claim?.claim_no ?? null,
+        service: svc?.name ?? null,
+        amount: svc ? rupiah(svc.amount) : null,
+        documented,
+        lay: subject?.service_lay ?? null,
+        when: subject?.when ?? null,
+        auditCount,
+      }
+    : null;
+
   const n = db.prepare("SELECT (SELECT COUNT(*) FROM participants) p, (SELECT COUNT(*) FROM facilities) f, (SELECT COUNT(*) FROM findings) fi, (SELECT COUNT(*) FROM findings WHERE proof_status='verified') v").get() as { p: number; f: number; fi: number; v: number };
   const a = getAdapters(db);
   const statuses = [a.claimFeed, a.evidence, a.identity, a.notification, a.paymentStatus].map((x) => x.status());
-  const live = SURFACES.filter((s) => s.ready);
+
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5">
-        <Brand size={32} />
-        {live.map((s) => <Link key={s.href} href={s.href} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">{s.label}</Link>)}
-      </header>
-      <main className="mx-auto max-w-5xl space-y-16 px-4 pb-20 pt-8">
-        <section>
-          <p className="eyebrow text-muted">JKN · Efisiensi risiko pada fasilitas kesehatan</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-5xl">Memastikan layanan yang dijanjikan benar-benar diterima, dan masalahnya ditindaklanjuti.</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-soft">SEHATI menghubungkan pengalaman peserta, catatan faskes, dan data klaim dalam satu rangkaian episode. Petugas membuktikan, faskes menjawab, perbaikan dicatat dan ditindaklanjuti.</p>
-          <p className="mt-3 max-w-2xl rounded-lg border border-line bg-brand-soft/60 px-3 py-2 text-sm text-ink-soft">Seluruh data pada lingkungan ini <strong>sintetis</strong>. Tidak terhubung ke sistem BPJS Kesehatan atau faskes nyata.</p>
-        </section>
+    <div className="min-h-screen bg-night text-ink">
+      <a href="#utama" className="sr-only rounded-md bg-white px-3 py-2 text-sm font-medium text-ink focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50">Lompat ke isi</a>
+      <LandingNav />
 
-        <section aria-labelledby="audiences">
-          <h2 id="audiences" className="text-xl font-semibold">Untuk siapa</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              ["Peserta", "Menjawab survei singkat, melaporkan kendala, dan mengonfirmasi apakah masalahnya sudah selesai."],
-              ["Faskes", "Menerima klarifikasi, menjawab dengan bukti, dan menyusun rencana perbaikan. Hak jawab selalu diberikan lebih dulu."],
-              ["Petugas", "Memeriksa sinyal, meminta klarifikasi, dan memutuskan. AI membantu menyiapkan, tidak memutuskan."],
-            ].map(([t, d]) => (
-              <div key={t} className="rounded-xl border border-line bg-card p-5"><h3 className="font-semibold">{t}</h3><p className="mt-1.5 text-sm text-ink-soft">{d}</p></div>
-            ))}
+      <main id="utama">
+        {/* Hero: tesis, satu foto, satu momen gerak */}
+        <section aria-labelledby="judul-utama" className="relative isolate flex min-h-[40rem] flex-col overflow-hidden bg-night md:min-h-[min(100svh,58rem)]">
+          <div className="absolute inset-0 -z-10">
+            <Photo k="hands" priority sizes="100vw" className="object-[70%_40%] opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-r from-night via-night/80 to-night/20" />
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-night to-transparent" />
+          </div>
+
+          <div className={`${WRAP} flex flex-1 flex-col justify-center pb-10 pt-28 md:pb-16 md:pt-36`}>
+            <div className="animate-rise-in">
+              <p className="text-[14px] font-medium text-mint">Akuntabilitas layanan JKN</p>
+              <h1 id="judul-utama" className="mt-5 max-w-[12ch] text-[clamp(2.4rem,10vw,3.4rem)] font-semibold leading-[1.04] tracking-[-0.045em] text-white sm:text-[4.4rem] sm:leading-[0.98] lg:text-[5.9rem]">
+                Janji layanan harus sampai ke pasien.
+              </h1>
+              <p className="mt-5 max-w-[34rem] text-[16px] leading-relaxed text-on-night-soft md:mt-7 md:text-[19px]">
+                Laporan peserta, bukti faskes, dan peninjauan petugas dalam satu alur yang dapat diaudit.
+              </p>
+              <div className="mt-7 flex flex-wrap items-center gap-3 md:mt-10">
+                <a href="#produk" className="btn btn-lg w-full bg-white text-night hover:bg-white/90 sm:w-auto">Lihat cara kerjanya</a>
+                <Link href="/console" className="btn btn-lg w-full text-white ring-1 ring-inset ring-white/25 hover:bg-white/10 sm:w-auto">Buka konsol petugas</Link>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${WRAP} pb-8`}>
+            <div className="flex flex-col gap-4 border-t border-white/12 pt-6 md:flex-row md:items-center md:justify-between">
+              <ul className="flex flex-wrap gap-x-8 gap-y-2 text-[14px] font-medium text-on-night">
+                <li>Sinyal, bukan tuduhan</li>
+                <li>Hak jawab faskes lebih dulu</li>
+                <li>Setiap keputusan tercatat</li>
+              </ul>
+              <p className="text-[12.5px] text-on-night-soft">Prototipe Healthkathon 2026. Data sintetis. Bukan produk resmi BPJS Kesehatan.</p>
+            </div>
           </div>
         </section>
 
-        <section aria-labelledby="stages">
-          <h2 id="stages" className="text-xl font-semibold">Tiga tahap survei dan satu konfirmasi terarah</h2>
-          <ol className="mt-4 grid gap-3 md:grid-cols-4">
-            {STAGES.map(([t, d], i) => (
-              <li key={t} className="rounded-xl border border-line bg-card p-4"><p className="font-mono text-xs text-muted">0{i + 1}</p><h3 className="mt-1 font-semibold">{t}</h3><p className="mt-1.5 text-sm text-ink-soft">{d}</p></li>
-            ))}
-          </ol>
-          <p className="mt-3 max-w-3xl text-sm text-ink-soft">Peran AI: memilih pertanyaan berikutnya dari bank pertanyaan yang sudah ditinjau, memahami jawaban bebas, dan merangkum untuk petugas. AI tidak menambah standar, tidak menyimpulkan penyebab, dan tidak memutuskan. Mesin yang aktif saat ini: <strong>{liveAvailable() ? "penyedia langsung" : "simulator deterministik berlabel"}</strong>.</p>
-        </section>
-
-        <section aria-labelledby="story">
-          <h2 id="story" className="text-xl font-semibold">Contoh: Bu Sari</h2>
-          <p className="mt-2 max-w-3xl text-sm text-ink-soft">Bu Sari dirawat di sebuah rumah sakit, lalu pulang dan kembali kontrol. Dari data sintetis, sistem memunculkan beberapa sinyal. Semuanya masih sinyal: belum ada yang dibuktikan.</p>
-          <ul className="mt-4 space-y-2">
-            {hero.map((h, i) => (
-              <li key={i} className="rounded-xl border border-line bg-card p-4 text-sm">
-                <p className="font-semibold">{FINDING_LABEL[h.type].label} <span className="ml-2 text-xs font-medium text-muted">{PROOF_LABEL[h.proof_status].label}</span></p>
-                <p className="mt-1 text-ink-soft">{h.summary}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 max-w-3xl text-sm text-ink-soft">Langkah berikutnya bukan tuduhan: petugas mencari catatan pelaksanaan, faskes diminta menjelaskan, dan baru setelah itu ada keputusan.</p>
-        </section>
-
-        <section aria-labelledby="numbers">
-          <h2 id="numbers" className="text-xl font-semibold">Angka dari data sintetis</h2>
-          <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[["Peserta", n.p], ["Faskes", n.f], ["Temuan berstatus sinyal atau lebih", n.fi], ["Temuan terbukti", n.v]].map(([l, v]) => (
-              <div key={String(l)} className="rounded-xl border border-line bg-card p-4"><dt className="text-xs font-medium text-ink-soft">{l}</dt><dd className="mt-1 text-3xl font-semibold tabular-nums">{v}</dd></div>
-            ))}
-          </dl>
-          <p className="mt-2 text-xs text-muted">Angka berasal dari basis data yang sama dengan konsol petugas. Jumlah temuan adalah hasil aturan pada data rekaan, bukan prevalensi di dunia nyata.</p>
-        </section>
-
-        <section aria-labelledby="principles">
-          <h2 id="principles" className="text-xl font-semibold">Prinsip yang ditegakkan sistem</h2>
-          <ul className="mt-4 grid gap-2 md:grid-cols-2">
-            {PRINCIPLES.map((p) => <li key={p} className="rounded-lg border border-line bg-card px-4 py-3 text-sm">{p}</li>)}
-          </ul>
-        </section>
-
-        <section aria-labelledby="limits">
-          <h2 id="limits" className="text-xl font-semibold">Batas integrasi saat ini</h2>
-          <div className="mt-4 divide-y divide-line rounded-xl border border-line bg-card">
-            {statuses.map((s) => (
-              <div key={s.name} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"><span className="font-medium">{s.name}</span><span className="flex items-center gap-2 text-ink-soft"><span className="hidden sm:inline">{s.detail}</span><SourceBadge source={s.source} /></span></div>
-            ))}
+        {/* Teater produk */}
+        <section id="produk" aria-labelledby="produk-judul" className="scroll-mt-16 bg-night pb-16 pt-16 md:pb-40 md:pt-28">
+          <div className={WRAP}>
+            <div className="mb-8 grid gap-4 md:mb-20 md:gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
+              <div>
+                <p className="text-[14px] font-medium text-mint">Produk</p>
+                <h2 id="produk-judul" className="mt-4 max-w-3xl text-[clamp(1.9rem,7.5vw,2.4rem)] font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-[3.4rem]">
+                  Satu ruang kerja untuk membuktikan, bukan menuduh.
+                </h2>
+              </div>
+              <p className="text-[16px] leading-relaxed text-on-night-soft">Tiga sumber berdampingan. Keputusan tetap di tangan petugas.</p>
+            </div>
+            {theater && <Theater d={theater} />}
           </div>
         </section>
+
+        <ThesisSection d={{ service: svc?.name ?? null, amount: svc ? rupiah(svc.amount) : null, documented, lay: subject?.service_lay ?? null }} />
+        <WardBand />
+        <HowSection live={liveAvailable()} />
+        <SidesSection />
+        <PrinciplesSection />
+        <LimitsSection statuses={statuses} n={n} />
+        <FinalSection />
       </main>
+      <Footer />
     </div>
   );
 }

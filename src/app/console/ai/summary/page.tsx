@@ -14,8 +14,8 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Ringkasan bukti kasus" purpose="Draf ringkasan untuk petugas: fakta dari peserta, dokumen yang mendukung, kontradiksi, informasi yang belum ada, dan saran langkah. Setiap butir menautkan ke sumbernya." />
-      <div className="mb-4"><SimNotice>AI hanya menyusun draf. Ringkasan tidak mengubah status pembuktian, tidak menyimpulkan penyebab, dan tidak menyebut fraud, pembayaran, atau sanksi. Petugas yang memutuskan.</SimNotice></div>
+      <PageHeader eyebrow="Standar dan AI" title="Ringkasan bukti kasus" purpose="Draf untuk petugas; setiap butir menautkan ke sumbernya." />
+      <div className="mb-5"><SimNotice>AI hanya menyusun draf; petugas yang memutuskan. Tidak mengubah status, menyimpulkan penyebab, atau menyebut fraud, pembayaran, sanksi.</SimNotice></div>
       {options.length === 0 ? <EmptyState title="Belum ada temuan" /> : <SummaryLab options={options} initial={sp.finding} />}
     </>
   );

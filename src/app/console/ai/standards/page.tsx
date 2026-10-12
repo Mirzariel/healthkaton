@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Card, Forbidden, PageHeader, Pill, SectionTitle, SimNotice, Stat } from "@/components/ui";
+import { Card, Forbidden, PageHeader, Pill, Section, SectionTitle, SimNotice, Stat } from "@/components/ui";
+import { IconChevronDown } from "@/components/icons";
 import { standardsSource } from "@/lib/ai/admin";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
@@ -15,37 +16,50 @@ export default async function AiStandardsPage() {
   const draftCount = s.indicators.filter((i) => i.status === "draft").length;
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Sumber standar yang dipakai survei" purpose="Pertanyaan dan butir yang boleh disentuh AI berasal dari bank standar yang ditinjau, bukan dari model. Halaman ini menunjukkan butir, versi, lokator sumber, dan statusnya." />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <PageHeader eyebrow="Standar dan AI" title="Sumber standar yang dipakai survei" purpose="Butir yang boleh disentuh AI berasal dari bank standar yang ditinjau, bukan dari model." />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat label="Butir dalam bank" value={s.indicators.length} hint={`${draftCount} berstatus draft`} tone={draftCount ? "warn" : "ok"} />
         <Stat label="Sesi memakai butir draft" value={s.sessions_with_draft} hint={`dari ${s.sessions_total} sesi`} tone={s.sessions_with_draft ? "warn" : "default"} />
         <Stat label="Versi standar" value={s.versions.length} />
       </div>
       <div className="mt-4"><SimNotice>{s.note}</SimNotice></div>
-      <section className="mt-8 space-y-3">
-        <SectionTitle title="Butir dan pertanyaan" hint="Butir diubah dan ditinjau di Registry standar; halaman ini hanya membaca." />
-        <div className="space-y-3">
+      <Section className="mt-8">
+        <SectionTitle title="Butir dan pertanyaan" hint="Hanya baca; ubah di Registry standar.">
+          <Link href="/console/standards" className="btn btn-secondary btn-sm">Buka Registry standar</Link>
+        </SectionTitle>
+        <Card className="divide-y divide-line">
           {s.indicators.map((i) => (
-            <Card key={i.id} className="p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="text-sm">{i.title}</strong>
-                <Pill className={TONE_CLASS.muted}>{STAGE_LABEL[i.stage as Stage]}</Pill>
-                <Pill className={i.status === "draft" ? TONE_CLASS.warn : TONE_CLASS.ok} title="Status versi standar">{i.status}</Pill>
-                {!i.observable_by_patient && <Pill className={TONE_CLASS.info}>tidak teramati peserta</Pill>}
-                <span className="ml-auto text-xs text-ink-soft">{i.sessions_using} sesi</span>
+            <details key={i.id} className="group">
+              <summary className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 hover:bg-subtle/60 sm:px-5">
+                <span className="min-w-0 flex-1 basis-56 text-[14px] font-semibold text-ink">{i.title}</span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <Pill className={TONE_CLASS.muted}>{STAGE_LABEL[i.stage as Stage]}</Pill>
+                  <Pill className={i.status === "draft" ? TONE_CLASS.warn : TONE_CLASS.ok} title="Status versi standar">{i.status}</Pill>
+                  {!i.observable_by_patient && <Pill className={TONE_CLASS.info}>tidak teramati peserta</Pill>}
+                </span>
+                <span className="flex items-center gap-2 text-[12.5px] tabular-nums text-muted">
+                  {i.sessions_using} sesi
+                  <IconChevronDown size={16} className="transition-transform duration-150 group-open:rotate-180" />
+                </span>
+              </summary>
+              <div className="space-y-3 border-t border-line bg-subtle/40 px-4 py-4 sm:px-5">
+                <p className="text-[13px] leading-relaxed text-ink-soft"><span className="font-mono text-[12px] text-ink">{i.indicator_id}</span>, versi {i.standard_version}{i.locator ? `. ${i.locator}` : ""}</p>
+                <p className="text-[13px] leading-relaxed">
+                  {i.source ? <><span className="text-muted">Sumber:</span> {i.source.title} <Pill className={`ml-1 ${i.source.validation_status === "validated" ? TONE_CLASS.ok : TONE_CLASS.warn}`}>{i.source.validation_status}</Pill>{i.source.validation_owner ? <span className="text-ink-soft"> pemilik validasi: {i.source.validation_owner}</span> : null}</> : <span className="text-warn">Sumber belum ditautkan.</span>}
+                </p>
+                <ul className="space-y-2 border-t border-line pt-3">
+                  {i.questions.map((q) => (
+                    <li key={q.id} className="text-[13.5px] leading-relaxed">
+                      <span className="mr-2 font-mono text-[11.5px] text-muted">{q.id}</span>{q.text}
+                      <span className="mt-0.5 block text-[12px] text-muted">mengisi slot <span className="font-mono">{q.target_slot}</span>{q.core ? ", pertanyaan inti" : ""}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="mt-1 text-xs text-ink-soft"><span className="font-mono">{i.indicator_id}</span> · {i.standard_version}{i.locator ? ` · ${i.locator}` : ""}</p>
-              <p className="mt-1 text-xs">
-                {i.source ? <>Sumber: {i.source.title} <Pill className={i.source.validation_status === "validated" ? TONE_CLASS.ok : TONE_CLASS.warn}>{i.source.validation_status}</Pill>{i.source.validation_owner ? <span className="text-ink-soft"> · pemilik validasi: {i.source.validation_owner}</span> : null}</> : <span className="text-warn">Sumber belum ditautkan.</span>}
-              </p>
-              <ul className="mt-2 space-y-1 border-t border-line pt-2 text-xs">
-                {i.questions.map((q) => <li key={q.id}><span className="font-mono text-muted">{q.id}</span> {q.text} <span className="text-muted">→ {q.target_slot}{q.core ? " · inti" : ""}</span></li>)}
-              </ul>
-            </Card>
+            </details>
           ))}
-        </div>
-        <p className="text-sm"><Link href="/console/standards" className="font-semibold text-brand underline underline-offset-4">Buka Registry standar →</Link></p>
-      </section>
+        </Card>
+      </Section>
     </>
   );
 }

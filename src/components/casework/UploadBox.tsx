@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { btnPrimary } from "./CommandForm";
+import { FilePicker } from "@/components/FilePicker";
+import { btnSecondary } from "./CommandForm";
 
 const KIND_NOTE: Record<string, string> = {
   text_extracted: "Teks berhasil dibaca dan menunggu telaah petugas.",
@@ -41,15 +42,15 @@ export function UploadBox({ endpoint, hidden = {}, label = "Lampirkan dokumen", 
     }
   }
   return (
-    <form onSubmit={onSubmit} className="space-y-2" id={onDoneId}>
-      <label htmlFor={`${uid}-f`} className="block text-xs font-medium text-ink-soft">{label}</label>
-      <div className="flex flex-wrap items-center gap-2">
-        <input id={`${uid}-f`} name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,application/pdf,image/png,image/jpeg,text/plain" className="max-w-full text-sm" />
-        <button type="submit" disabled={busy} className={btnPrimary}>{busy ? "Mengunggah…" : "Unggah"}</button>
+    <form onSubmit={onSubmit} className="space-y-2.5" id={onDoneId}>
+      <label htmlFor={`${uid}-f`} className="field-label">{label}</label>
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-line-strong bg-subtle/50 p-3">
+        <FilePicker id={`${uid}-f`} name="file" accept=".pdf,.png,.jpg,.jpeg,.txt,application/pdf,image/png,image/jpeg,text/plain" />
+        <button type="submit" disabled={busy} className={`${btnSecondary} btn-sm`}>{busy ? "Mengunggah…" : "Unggah"}</button>
       </div>
-      <p className="text-xs text-muted">PDF, PNG, JPEG, atau teks biasa, maksimal 3 MB. Jenis berkas diperiksa dari isinya.</p>
-      {done && <p role="status" className="text-sm text-ok">{done}</p>}
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
+      <p className="field-hint">PDF, PNG, JPEG, atau teks biasa, maksimal 3 MB. Jenis berkas diperiksa dari isinya.</p>
+      {done && <p role="status" className="text-[13px] font-medium text-ok">{done}</p>}
+      {err && <p role="alert" className="text-[13px] text-danger">{err}</p>}
     </form>
   );
 }

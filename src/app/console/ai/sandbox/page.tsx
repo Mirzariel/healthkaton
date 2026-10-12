@@ -10,8 +10,8 @@ export default async function SandboxPage() {
   if (!can(me, "ai.sandbox")) return <Forbidden need="ai.sandbox" />;
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Sandbox AI" purpose="Coba satu jawaban terhadap dua konfigurasi, termasuk kegagalan yang disuntikkan, untuk melihat bagaimana validator dan fallback bekerja. Tidak ada data nyata yang berubah." />
-      <div className="mb-4"><SimNotice>Mode “Simulasi” memakai penafsir aturan, bukan model. Hasilnya menunjukkan perilaku validator dan fallback, bukan kualitas pemahaman bahasa oleh model AI.</SimNotice></div>
+      <PageHeader eyebrow="Standar dan AI" title="Sandbox AI" purpose="Uji satu jawaban pada dua konfigurasi. Tidak ada data nyata yang berubah." />
+      <div className="mb-5"><SimNotice>Mode “Simulasi” memakai penafsir aturan, bukan model; hasilnya bukan kualitas pemahaman model AI.</SimNotice></div>
       <SandboxLab />
     </>
   );

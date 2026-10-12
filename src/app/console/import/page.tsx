@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Disclosure } from "@/components/analytics/blocks";
+import { RecordId, rowLink } from "@/components/console/Parts";
 import { ApplyBox, ImportUpload } from "@/components/pkbi/ImportForms";
-import { Card, EmptyState, Forbidden, PageHeader, Pill, SectionTitle, SimNotice } from "@/components/ui";
+import { IconDownload } from "@/components/icons";
+import { Card, CardHeader, EmptyState, Forbidden, Notice, PageHeader, Pill, SectionTitle, SimNotice, Stat, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
 import { fmtDateTime } from "@/lib/dates";
@@ -19,95 +22,111 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   const { job: jobId } = await searchParams;
   const db = getDb();
   const job = jobId ? getJob(db, jobId) : null;
+  const jobs = job ? [] : listJobs(db);
   return (
     <>
-      <PageHeader title="Impor data" eyebrow="Kerja" purpose="Masukkan data klaim, layanan, status bayar, atau standar dari berkas. Selalu dimulai dengan pratinjau; tidak ada data yang berubah sebelum Anda menerapkannya." />
-      <SimNotice>Data impor diberi label “Impor tervalidasi” dan tidak pernah menimpa data yang sudah ada: nomor klaim yang sama dengan isi identik dilewati, yang berbeda ditolak. Peserta ditulis sebagai pseudonim, bukan nama atau NIK. Maksimal 1 MB dan {MAX_IMPORT_ROWS} baris per berkas.</SimNotice>
+      <PageHeader title="Impor data" eyebrow="Kerja" purpose="Masukkan data dari berkas. Selalu pratinjau dulu; tidak ada yang berubah sebelum diterapkan.">
+        {job && <Link href="/console/import" className="btn btn-secondary btn-sm">Impor baru</Link>}
+      </PageHeader>
+      <SimNotice>Data impor berlabel “Impor tervalidasi” dan tidak menimpa data lama; peserta berupa pseudonim. Maks. 1 MB dan {MAX_IMPORT_ROWS} baris. <details className="mt-1"><summary className="cursor-pointer font-medium text-ink">Selengkapnya</summary><p className="mt-1">Nomor klaim sama dengan isi identik dilewati; yang berbeda ditolak. Peserta ditulis sebagai pseudonim, bukan nama atau NIK.</p></details></SimNotice>
 
       {job ? (
-        <section className="mt-6 space-y-4">
-          <SectionTitle title={`Pekerjaan ${job.id}`} hint={`${KIND_DEFS[job.kind].label} · ${job.file_name ?? "teks tempel"} · ${fmtDateTime(job.created_at)}`}>
+        <section className="mt-8 space-y-4" aria-label={`Pekerjaan ${job.id}`}>
+          <SectionTitle title={<>Pekerjaan <RecordId className="text-[14px] text-ink">{job.id}</RecordId></>} hint={`${KIND_DEFS[job.kind].label} · ${job.file_name ?? "teks tempel"} · ${fmtDateTime(job.created_at)}`}>
             <Pill className={TONE_CLASS[STATUS[job.status].tone]}>{STATUS[job.status].label}</Pill>
           </SectionTitle>
-          <div className="grid gap-3 sm:grid-cols-4">
-            {([["Total baris", job.total_rows], ["Baru", job.summary.fresh], ["Duplikat", job.summary.duplicate], ["Bergalat", job.error_rows]] as const).map(([l, v]) => (
-              <div key={l} className="rounded-xl border border-line bg-card p-4"><p className="text-xs text-ink-soft">{l}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{v}</p></div>
-            ))}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat label="Total baris" value={job.total_rows} />
+            <Stat label="Baru" value={job.summary.fresh} tone={job.summary.fresh ? "ok" : "default"} />
+            <Stat label="Duplikat" value={job.summary.duplicate} />
+            <Stat label="Bergalat" value={job.error_rows} tone={job.error_rows ? "danger" : "default"} />
           </div>
-          {job.summary.duplicate_of && <p className="rounded-lg border border-line bg-warn-soft px-3 py-2 text-sm text-ink-soft">Isi yang sama persis sudah pernah diterapkan pada pekerjaan <Link className="underline" href={`/console/import?job=${job.summary.duplicate_of}`}>{job.summary.duplicate_of}</Link>. Menerapkan lagi tidak menambah data.</p>}
-          {job.summary.fileErrors.length > 0 && <Card className="p-4 text-sm text-danger"><ul className="list-disc pl-5">{job.summary.fileErrors.map((e, i) => <li key={i}>{e.message}</li>)}</ul></Card>}
-          {job.summary.warnings.length > 0 && <Card className="p-4 text-sm text-ink-soft"><ul className="list-disc pl-5">{job.summary.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></Card>}
-          {job.status === "previewed" && <Card elevated className="p-4"><ApplyBox jobId={job.id} errors={job.error_rows} fresh={job.summary.fresh} /></Card>}
+          {job.summary.duplicate_of && <Notice tone="warn">Isi yang sama persis sudah pernah diterapkan pada pekerjaan <Link className="link" href={`/console/import?job=${job.summary.duplicate_of}`}>{job.summary.duplicate_of}</Link>. Menerapkan lagi tidak menambah data.</Notice>}
+          {job.summary.fileErrors.length > 0 && <Notice tone="danger" title="Galat pada berkas"><ul className="mt-1 list-disc pl-4">{job.summary.fileErrors.map((e, i) => <li key={i}>{e.message}</li>)}</ul></Notice>}
+          {job.summary.warnings.length > 0 && <Notice tone="warn" title="Peringatan"><ul className="mt-1 list-disc pl-4">{job.summary.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></Notice>}
+          {job.status === "previewed" && <Card elevated><CardHeader title="Terapkan pratinjau" /><div className="p-5"><ApplyBox jobId={job.id} errors={job.error_rows} fresh={job.summary.fresh} /></div></Card>}
           {job.status === "applied" && job.summary.result && (
-            <Card className="space-y-1 p-4 text-sm">
-              <p className="font-semibold">Hasil penerapan{job.summary.result.partial ? ` (parsial: ${job.summary.result.skippedErrors} baris bergalat dilewati)` : ""}</p>
-              <ul className="list-disc pl-5 text-ink-soft">{Object.entries(job.summary.result.inserted).map(([k, v]) => <li key={k}>{k}: {v}</li>)}{job.summary.result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
-              {job.summary.result.derived && <p className="text-xs text-muted">Turunan otomatis: {Object.entries(job.summary.result.derived).map(([k, v]) => `${k.replaceAll("_", " ")} ${v}`).join(" · ")}</p>}
+            <Card>
+              <CardHeader title={`Hasil penerapan${job.summary.result.partial ? ` (parsial: ${job.summary.result.skippedErrors} baris bergalat dilewati)` : ""}`} />
+              <div className="space-y-2 px-5 py-4 text-[14px]">
+                <ul className="list-disc pl-5 text-ink-soft">{Object.entries(job.summary.result.inserted).map(([k, v]) => <li key={k}>{k}: <span className="tabular-nums">{v}</span></li>)}{job.summary.result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                {job.summary.result.derived && <p className="text-[12.5px] text-muted">Turunan otomatis: {Object.entries(job.summary.result.derived).map(([k, v]) => `${k.replaceAll("_", " ")} ${v}`).join(" · ")}</p>}
+              </div>
             </Card>
           )}
-          <Card className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted"><tr><th className="p-3">Baris</th><th className="p-3">Isi</th><th className="p-3">Hasil</th><th className="p-3">Catatan</th></tr></thead>
-              <tbody className="divide-y divide-line">
+          <TableCard label="Baris pratinjau">
+            <table className="w-full min-w-[32rem] text-left text-[13.5px]">
+              <caption className="sr-only">Baris pada berkas impor dan hasil pemeriksaannya</caption>
+              <thead><tr><th className="px-4 py-2.5 text-right">Baris</th><th className="px-4 py-2.5">Isi</th><th className="px-4 py-2.5">Hasil</th><th className="px-4 py-2.5">Catatan</th></tr></thead>
+              <tbody>
                 {job.summary.rows.map((r) => (
                   <tr key={r.line} className="align-top">
-                    <td className="p-3 tabular-nums">{r.line}</td>
-                    <td className="p-3 font-mono text-xs">{r.label}</td>
-                    <td className="p-3"><Pill className={TONE_CLASS[OUT[r.outcome].tone]}>{OUT[r.outcome].label}</Pill></td>
-                    <td className="p-3 text-ink-soft">{r.errors.map((e, i) => <p key={i} className="text-danger">{e.field ? `${e.field}: ` : ""}{e.message}</p>)}{r.note && <p>{r.note}</p>}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted">{r.line}</td>
+                    <td className="px-4 py-3 font-mono text-[12px]">{r.label}</td>
+                    <td className="px-4 py-3"><Pill className={TONE_CLASS[OUT[r.outcome].tone]}>{OUT[r.outcome].label}</Pill></td>
+                    <td className="px-4 py-3 text-ink-soft">{r.errors.map((e, i) => <p key={i} className="text-danger">{e.field ? `${e.field}: ` : ""}{e.message}</p>)}{r.note && <p>{r.note}</p>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {job.total_rows > job.summary.rows.length && <p className="p-3 text-xs text-muted">Menampilkan {job.summary.rows.length} dari {job.total_rows} baris.</p>}
-          </Card>
+            {job.total_rows > job.summary.rows.length && <p className="border-t border-line p-3 text-[12.5px] text-muted">Menampilkan {job.summary.rows.length} dari {job.total_rows} baris.</p>}
+          </TableCard>
         </section>
       ) : (
         <>
-          {jobId && <p className="mt-4 text-sm text-danger">Pekerjaan {jobId} tidak ditemukan.</p>}
-          <section className="mt-6 space-y-3">
+          {jobId && <div className="mt-4"><Notice tone="danger">Pekerjaan {jobId} tidak ditemukan.</Notice></div>}
+          <section className="mt-8 space-y-3">
             <SectionTitle title="Pratinjau impor baru" />
-            <Card elevated className="p-4"><ImportUpload kinds={IMPORT_KINDS.map((k) => ({ value: k, label: KIND_DEFS[k].label, format: KIND_DEFS[k].format }))} /></Card>
+            <Card elevated className="p-5"><ImportUpload kinds={IMPORT_KINDS.map((k) => ({ value: k, label: KIND_DEFS[k].label, format: KIND_DEFS[k].format }))} /></Card>
           </section>
-          <section className="mt-8 space-y-3">
-            <SectionTitle title="Format dan templat" hint="Unduh templat berisi contoh. Urutan impor yang disarankan: episode dan klaim → layanan → status bayar." />
-            <div className="grid gap-4 lg:grid-cols-2">
-              {IMPORT_KINDS.map((k) => {
-                const d = KIND_DEFS[k];
-                return (
-                  <Card key={k} className="space-y-2 p-4 text-sm">
-                    <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">{d.label}</h3><a className="text-xs font-semibold underline underline-offset-4" href={`/api/import/template/${k}`}>Unduh templat</a></div>
-                    <p className="text-ink-soft">{d.description}</p>
-                    <p className="text-xs text-muted">Duplikat: {d.dedupe}</p>
-                    <details><summary className="cursor-pointer text-xs font-semibold">Kolom ({d.columns.length})</summary>
-                      <ul className="mt-2 space-y-1 text-xs text-ink-soft">{d.columns.map((c) => <li key={c.name}><span className="font-mono">{c.name}</span>{c.required === true ? " *" : c.required === "kondisional" ? " (kondisional)" : ""}: {c.help}</li>)}</ul>
-                      {d.notes.length > 0 && <ul className="mt-2 list-disc pl-4 text-xs text-muted">{d.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
-                    </details>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-          <section className="mt-8 space-y-3">
+          <section className="mt-10 space-y-3">
             <SectionTitle title="Riwayat impor" />
-            <Card className="overflow-x-auto">
-              {listJobs(db).length === 0 ? <EmptyState title="Belum ada impor" /> : (
-                <table className="w-full text-left text-sm">
-                  <thead className="text-xs text-muted"><tr><th className="p-3">Pekerjaan</th><th className="p-3">Jenis</th><th className="p-3">Baris</th><th className="p-3">Status</th><th className="p-3">Dibuat</th></tr></thead>
-                  <tbody className="divide-y divide-line">
-                    {listJobs(db).map((j) => (
-                      <tr key={j.id}>
-                        <td className="p-3"><Link className="font-mono text-xs underline underline-offset-4" href={`/console/import?job=${j.id}`}>{j.id}</Link><p className="text-xs text-muted">{j.file_name ?? "teks tempel"}</p></td>
-                        <td className="p-3">{KIND_DEFS[j.kind].label}</td>
-                        <td className="p-3 tabular-nums">{j.total_rows} ({j.valid_rows} valid, {j.error_rows} galat)</td>
-                        <td className="p-3"><Pill className={TONE_CLASS[STATUS[j.status].tone]}>{STATUS[j.status].label}</Pill></td>
-                        <td className="p-3 text-ink-soft">{fmtDateTime(j.created_at)}</td>
+            <TableCard label="Riwayat impor">
+              {jobs.length === 0 ? <EmptyState title="Belum ada impor">Pratinjau pertama akan muncul di sini.</EmptyState> : (
+                <table className="w-full min-w-[30rem] text-left text-[13.5px]">
+                  <caption className="sr-only">Riwayat pekerjaan impor</caption>
+                  <thead><tr><th className="px-4 py-2.5">Pekerjaan</th><th className="px-4 py-2.5">Jenis</th><th className="px-4 py-2.5 text-right">Baris</th><th className="px-4 py-2.5">Status</th><th className="hidden px-4 py-2.5 md:table-cell">Dibuat</th></tr></thead>
+                  <tbody>
+                    {jobs.map((j) => (
+                      <tr key={j.id} className="align-top">
+                        <td className="px-4 py-3"><Link className={`${rowLink} font-mono text-[12.5px]`} href={`/console/import?job=${j.id}`}>{j.id}</Link><p className="mt-0.5 text-[12px] text-muted">{j.file_name ?? "teks tempel"}</p></td>
+                        <td className="px-4 py-3">{KIND_DEFS[j.kind].label}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{j.total_rows}<p className="text-[12px] text-muted">{j.valid_rows} valid, {j.error_rows} galat</p></td>
+                        <td className="px-4 py-3"><Pill className={TONE_CLASS[STATUS[j.status].tone]}>{STATUS[j.status].label}</Pill></td>
+                        <td className="hidden px-4 py-3 text-ink-soft md:table-cell">{fmtDateTime(j.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
-            </Card>
+            </TableCard>
+          </section>
+          <section className="mt-10">
+            <Disclosure title="Format dan templat" meta={`${IMPORT_KINDS.length} jenis`}>
+            <p className="mb-4 text-[13px] text-muted">Urutan disarankan: episode dan klaim, layanan, status bayar.</p>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {IMPORT_KINDS.map((k) => {
+                const d = KIND_DEFS[k];
+                return (
+                  <Card key={k} className="flex flex-col">
+                    <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3.5">
+                      <h3 className="text-[14px] font-semibold">{d.label}</h3>
+                      <a className="btn btn-secondary btn-sm shrink-0" href={`/api/import/template/${k}`}><IconDownload size={14} />Unduh templat</a>
+                    </div>
+                    <div className="space-y-2 px-5 py-4 text-[14px]">
+                      <p className="text-ink-soft">{d.description}</p>
+                      <p className="text-[12.5px] text-muted">Duplikat: {d.dedupe}</p>
+                      <details className="group/d pt-1">
+                        <summary className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium text-ink-soft underline decoration-line-strong underline-offset-4 hover:text-ink">Kolom ({d.columns.length})</summary>
+                        <ul className="mt-2 space-y-1 text-[12.5px] text-ink-soft">{d.columns.map((c) => <li key={c.name}><span className="font-mono">{c.name}</span>{c.required === true ? " *" : c.required === "kondisional" ? " (kondisional)" : ""}: {c.help}</li>)}</ul>
+                        {d.notes.length > 0 && <ul className="mt-2 list-disc pl-4 text-[12.5px] text-muted">{d.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+                      </details>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            </Disclosure>
           </section>
         </>
       )}
