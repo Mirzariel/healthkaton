@@ -77,10 +77,10 @@ export function CommandForm({
     }
   }
 
-  const cls = (tone === "danger" ? btnDanger : tone === "secondary" ? btnSecondary : btnPrimary) + (compact ? " btn-sm" : "");
+  const cls = (tone === "danger" ? btnDanger : tone === "secondary" ? btnSecondary : btnPrimary) + (compact ? " btn-sm" : " w-full sm:w-auto");
   return (
     <form key={version} onSubmit={onSubmit} className={compact ? "flex flex-wrap items-end gap-2.5" : "space-y-4"}>
-      {intro && <p className="text-[13.5px] leading-relaxed text-ink-soft">{intro}</p>}
+      {intro && <p className="text-body-sm leading-relaxed text-ink-soft">{intro}</p>}
       {fields.map((f) => {
         const id = `${uid}-${f.name}`;
         const lab = <label htmlFor={id} className="field-label">{f.label}{"required" in f && f.required ? <span aria-hidden className="text-danger"> *</span> : null}</label>;
@@ -92,17 +92,17 @@ export function CommandForm({
         if (f.kind === "checks") return (
           <fieldset key={f.name}>
             <legend className="field-label">{f.label}</legend>
-            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2">{f.options.map((o) => <label key={o.value} className="flex items-center gap-2 text-[14px]"><input type="checkbox" name={f.name} value={o.value} defaultChecked={f.defaultValue?.includes(o.value)} />{o.label}</label>)}</div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2">{f.options.map((o) => <label key={o.value} className="flex items-center gap-2 text-body-sm"><input type="checkbox" name={f.name} value={o.value} defaultChecked={f.defaultValue?.includes(o.value)} />{o.label}</label>)}</div>
             {hint}
           </fieldset>
         );
         return <div key={f.name} className={compact ? "min-w-40" : ""}>{lab}<input id={id} name={f.name} type={f.kind === "number" ? "number" : f.kind === "date" ? "date" : "text"} required={f.required} defaultValue={f.defaultValue == null ? "" : String(f.defaultValue)} placeholder={f.placeholder} min={f.kind === "number" ? f.min : undefined} max={f.kind === "number" ? f.max : undefined} className={input} />{hint}</div>;
       })}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <button type="submit" disabled={busy} className={cls}>{busy ? "Memproses…" : submit}</button>
-        {ok && <span role="status" className="text-[13px] font-medium text-ok">{ok}</span>}
+        {ok && <span role="status" className="text-caption font-medium text-ok">{ok}</span>}
       </div>
-      {err && <p role="alert" className="basis-full rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-[13px] text-danger">{err}</p>}
+      {err && <p role="alert" className="basis-full rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-caption text-danger">{err}</p>}
     </form>
   );
 }

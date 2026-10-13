@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { GLOSSARY, type GlossaryEntry, type GlossaryKey } from "@/lib/glossary";
+import { EASE_OUT as EASE } from "@/lib/motionTokens";
 
 /* Komponen penjelas: membuat setiap kode & istilah bisa "ditanya" tanpa meninggalkan halaman.
    - <Term k="phantom">phantom billing</Term>   → teks bergaris titik-titik, klik/arahkan untuk penjelasan
@@ -11,7 +12,6 @@ import { GLOSSARY, type GlossaryEntry, type GlossaryKey } from "@/lib/glossary";
    - <InfoDot k="skor" />                          → ikon ⓘ saja (untuk judul kolom/label)
    - <PageGuide id="antrean" ... />                → panel "Cara membaca halaman ini" yang bisa dilipat */
 
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 function usePopover() {
   const [open, setOpen] = useState(false);
@@ -68,9 +68,9 @@ function usePopover() {
   return { open, setOpen, pos, anchor, hover };
 }
 
-function Bubble({ k, open, pos, id, hover }: { k: GlossaryKey; open: boolean; pos: { top: number; left: number; above: boolean } | null; id: string; hover: { onMouseEnter: () => void; onMouseLeave: () => void } }) {
-  const g: GlossaryEntry = GLOSSARY[k];
-  if (typeof document === "undefined") return null;
+function Bubble({ k, entry, open, pos, id, hover }: { k?: GlossaryKey; entry?: GlossaryEntry; open: boolean; pos: { top: number; left: number; above: boolean } | null; id: string; hover: { onMouseEnter: () => void; onMouseLeave: () => void } }) {
+  const g: GlossaryEntry | undefined = entry ?? (k ? GLOSSARY[k] : undefined);
+  if (typeof document === "undefined" || !g) return null;
   return createPortal(
     <AnimatePresence>
       {open && pos && (
@@ -87,10 +87,10 @@ function Bubble({ k, open, pos, id, hover }: { k: GlossaryKey; open: boolean; po
           className="pointer-events-auto"
         >
           <div className={`rounded-lg bg-ink px-3.5 py-3 text-left text-white shadow-depth-3 ring-1 ring-white/10 ${pos.above ? "-translate-y-full" : ""}`}>
-            <p className="text-[13.5px] font-semibold leading-snug tracking-normal">{g.title}</p>
-            <p className="mt-1 text-[13px] font-normal normal-case leading-relaxed tracking-normal text-white/80">{g.body}</p>
+            <p className="text-body-sm font-semibold leading-snug tracking-normal">{g.title}</p>
+            <p className="mt-1 text-caption font-normal normal-case leading-relaxed tracking-normal text-white/80">{g.body}</p>
             {"example" in g && g.example && (
-              <p className="mt-2 text-[12px] normal-case tracking-normal text-white/55">
+              <p className="mt-2 text-caption normal-case tracking-normal text-white/55">
                 Contoh: <span className="font-mono text-white/85">{g.example}</span>
               </p>
             )}
@@ -132,8 +132,10 @@ export function Term({ k, children, className = "" }: { k: GlossaryKey; children
   );
 }
 
-/** Ikon ⓘ kecil dengan penjelasan istilah. */
-export function InfoDot({ k, className = "", label }: { k: GlossaryKey; className?: string; label?: string }) {
+/** Ikon ⓘ kecil dengan penjelasan istilah. Target sentuh 32px, lingkaran visual 16px.
+    Pakai `k` (kunci glosarium) atau `entry` ({ title, body }) untuk penjelasan khusus. */
+export function InfoDot({ k, entry, className = "", label }: { k?: GlossaryKey; entry?: GlossaryEntry; className?: string; label?: string }) {
+  const title = entry?.title ?? (k ? GLOSSARY[k].title : "");
   const { open, setOpen, pos, anchor, hover } = usePopover();
   const id = useId();
   return (
@@ -143,7 +145,7 @@ export function InfoDot({ k, className = "", label }: { k: GlossaryKey; classNam
           anchor.current = el;
         }}
         type="button"
-        aria-label={label ?? `Penjelasan: ${GLOSSARY[k].title}`}
+        aria-label={label ?? `Penjelasan: ${title}`}
         aria-describedby={open ? id : undefined}
         onClick={(e) => {
           e.preventDefault();
@@ -153,11 +155,11 @@ export function InfoDot({ k, className = "", label }: { k: GlossaryKey; classNam
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         {...hover}
-        className={`info-dot inline-grid shrink-0 cursor-help place-items-center rounded-md text-[9.5px] font-semibold normal-case not-italic leading-none tracking-normal text-muted align-middle transition-colors hover:bg-subtle ${className}`}
+        className={`info-dot inline-grid shrink-0 cursor-help place-items-center rounded-full text-caption font-semibold normal-case not-italic leading-none tracking-normal text-muted align-middle transition-colors hover:bg-subtle hover:text-ink ${className}`}
       >
-        <span aria-hidden className="grid size-[15px] place-items-center rounded-full ring-1 ring-current/40">i</span>
+        <span aria-hidden className="grid size-4 place-items-center rounded-full ring-1 ring-current/40">i</span>
       </button>
-      <Bubble k={k} open={open} pos={pos} id={id} hover={hover} />
+      <Bubble k={k} entry={entry} open={open} pos={pos} id={id} hover={hover} />
     </>
   );
 }
@@ -198,35 +200,35 @@ export function PageGuide({ id, title = "Cara membaca halaman ini", intro, steps
   return (
     <section
       aria-label={title}
-      className={`no-print relative mb-5 overflow-hidden rounded-xl border ${dark ? "border-white/10 bg-ink text-white" : "border-line bg-card"}`}
+      className={`no-print relative mb-5 overflow-hidden rounded-card border ${dark ? "border-white/10 bg-ink text-white" : "border-line bg-card"}`}
     >
       <button type="button" onClick={toggle} aria-expanded={open} className="flex w-full items-center gap-3 px-5 py-3.5 text-left">
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-sm font-bold ${dark ? "bg-white/10 text-mint" : "bg-brand-soft text-brand"}`} aria-hidden>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-body-sm font-bold ${dark ? "bg-white/10 text-mint" : "bg-brand-soft text-brand"}`} aria-hidden>
           ?
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-[15px] font-bold">{title}</span>
-          {!open && <span className={`block truncate text-xs ${dark ? "text-white/70" : "text-muted"}`}>Klik untuk melihat panduan singkat</span>}
+          <span className="block font-display text-body font-bold">{title}</span>
+          {!open && <span className={`block truncate text-caption ${dark ? "text-white/70" : "text-muted"}`}>Klik untuk melihat panduan singkat</span>}
         </span>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${dark ? "bg-white/10" : "bg-paper text-ink-soft"}`}>{open ? "Sembunyikan" : "Tampilkan"}</span>
+        <span className={`rounded-full px-3 py-1 text-caption font-semibold ${dark ? "bg-white/10" : "bg-paper text-ink-soft"}`}>{open ? "Sembunyikan" : "Tampilkan"}</span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: EASE }} className="overflow-hidden">
             <div className="px-5 pb-5">
-              {intro && <p className={`max-w-3xl text-sm leading-relaxed ${dark ? "text-white/85" : "text-ink-soft"}`}>{intro}</p>}
+              {intro && <p className={`max-w-3xl text-body-sm leading-relaxed ${dark ? "text-white/85" : "text-ink-soft"}`}>{intro}</p>}
               <ol className={`mt-4 grid gap-3 ${steps.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : steps.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                 {steps.map((s, i) => (
                   <li key={i} className={`rounded-lg p-3.5 ${dark ? "bg-white/5 ring-1 ring-white/10" : "bg-paper ring-1 ring-line"}`}>
                     <div className="flex items-center gap-2">
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-[11px] font-semibold text-white">{i + 1}</span>
-                      <p className="font-display text-sm font-bold">{s.title}</p>
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-caption font-semibold text-white">{i + 1}</span>
+                      <p className="font-display text-body-sm font-bold">{s.title}</p>
                     </div>
-                    <div className={`mt-1.5 text-[13px] leading-relaxed ${dark ? "text-white/80" : "text-ink-soft"}`}>{s.body}</div>
+                    <div className={`mt-1.5 text-caption leading-relaxed ${dark ? "text-white/80" : "text-ink-soft"}`}>{s.body}</div>
                   </li>
                 ))}
               </ol>
-              {legend && <div className={`mt-4 border-t pt-3 text-xs ${dark ? "border-white/10 text-white/75" : "border-line text-ink-soft"}`}>{legend}</div>}
+              {legend && <div className={`mt-4 border-t pt-3 text-caption ${dark ? "border-white/10 text-white/75" : "border-line text-ink-soft"}`}>{legend}</div>}
             </div>
           </motion.div>
         )}

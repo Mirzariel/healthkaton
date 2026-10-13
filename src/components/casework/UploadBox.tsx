@@ -44,13 +44,13 @@ export function UploadBox({ endpoint, hidden = {}, label = "Lampirkan dokumen", 
   return (
     <form onSubmit={onSubmit} className="space-y-2.5" id={onDoneId}>
       <label htmlFor={`${uid}-f`} className="field-label">{label}</label>
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-line-strong bg-subtle/50 p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-control border border-dashed border-line-strong bg-subtle/50 p-3">
         <FilePicker id={`${uid}-f`} name="file" accept=".pdf,.png,.jpg,.jpeg,.txt,application/pdf,image/png,image/jpeg,text/plain" />
-        <button type="submit" disabled={busy} className={`${btnSecondary} btn-sm`}>{busy ? "Mengunggah…" : "Unggah"}</button>
+        <button type="submit" disabled={busy} className={`${btnSecondary} btn-sm w-full sm:w-auto`}>{busy ? "Mengunggah…" : "Unggah"}</button>
       </div>
-      <p className="field-hint">PDF, PNG, JPEG, atau teks biasa, maksimal 3 MB. Jenis berkas diperiksa dari isinya.</p>
-      {done && <p role="status" className="text-[13px] font-medium text-ok">{done}</p>}
-      {err && <p role="alert" className="text-[13px] text-danger">{err}</p>}
+      <p className="field-hint">PDF, PNG, JPEG, atau teks, maksimal 3 MB.</p>
+      {done && <p role="status" className="text-caption font-medium text-ok">{done}</p>}
+      {err && <p role="alert" className="text-caption text-danger">{err}</p>}
     </form>
   );
 }

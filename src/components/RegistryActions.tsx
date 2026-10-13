@@ -17,7 +17,7 @@ export function TransitionBox({ id, options }: { id: string; options: { to: stri
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  if (!options.length) return <p className="text-[13.5px] leading-relaxed text-ink-soft">Tidak ada transisi yang tersedia untuk peran Anda pada status ini.</p>;
+  if (!options.length) return <p className="text-body-sm leading-relaxed text-ink-soft">Tidak ada transisi yang tersedia untuk peran Anda pada status ini.</p>;
   async function go(to: string) {
     setBusy(true);
     setMsg(null);
@@ -39,7 +39,7 @@ export function TransitionBox({ id, options }: { id: string; options: { to: stri
           <button key={o.to} type="button" disabled={busy} onClick={() => go(o.to)} className={o.to === "approved" || o.to === "reviewed" ? primary : btn}>{o.label}</button>
         ))}
       </div>
-      {msg && <p role="alert" className="text-[13px] text-danger">{msg}</p>}
+      {msg && <p role="alert" className="text-caption text-danger">{msg}</p>}
     </div>
   );
 }
@@ -57,12 +57,12 @@ export function QuestionEditor({ id, text, editable }: { id: string; text: strin
     setMsg(null);
     router.refresh();
   }
-  if (!open) return <span>{text} <button type="button" onClick={() => setOpen(true)} className="link ml-1 text-[13px]">ubah</button></span>;
+  if (!open) return <span>{text} <button type="button" onClick={() => setOpen(true)} className="link ml-1 text-caption">ubah</button></span>;
   return (
     <span className="block space-y-2">
       <textarea aria-label="Kalimat pertanyaan" value={val} onChange={(e) => setVal(e.target.value)} rows={2} className="field" />
       <span className="flex gap-2"><button type="button" onClick={save} className={primary}>Simpan</button><button type="button" onClick={() => { setOpen(false); setVal(text); }} className={btn}>Batal</button></span>
-      {msg && <span role="alert" className="block text-[12.5px] text-danger">{msg}</span>}
+      {msg && <span role="alert" className="block text-caption text-danger">{msg}</span>}
     </span>
   );
 }
@@ -83,7 +83,7 @@ export function NewDraftBox({ id }: { id: string }) {
         <input id="nv" value={v} onChange={(e) => setV(e.target.value)} placeholder="mis. 1.1" className="field" />
       </div>
       <button type="button" onClick={go} disabled={!v} className={btn}>Salin menjadi draft</button>
-      {msg && <p role="alert" className="text-[13px] text-danger">{msg}</p>}
+      {msg && <p role="alert" className="text-caption text-danger">{msg}</p>}
     </div>
   );
 }
@@ -104,17 +104,17 @@ export function ImportBox() {
   return (
     <div className="space-y-3">
       <label htmlFor="imp" className="field-label">Tempel JSON standar (satu standar, banyak butir)</label>
-      <textarea id="imp" value={txt} onChange={(e) => setTxt(e.target.value)} rows={8} spellCheck={false} className="field font-mono text-[12.5px]" />
+      <textarea id="imp" value={txt} onChange={(e) => setTxt(e.target.value)} rows={8} spellCheck={false} className="field font-mono text-code" />
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => go(true)} disabled={!txt.trim()} className="btn btn-secondary">Periksa (pratinjau)</button>
         <button type="button" onClick={() => go(false)} disabled={!txt.trim()} className="btn btn-primary">Impor sebagai draft</button>
       </div>
       {err && <Notice tone="danger"><span role="alert">{err}</span></Notice>}
       {res && (
-        <div role="status" className="rounded-lg border border-line bg-subtle/50 p-3.5 text-[13.5px]">
+        <div role="status" className="rounded-lg border border-line bg-subtle/50 p-3.5 text-body-sm">
           <p className="font-semibold text-ink">{res.applied ? `Diimpor: ${res.note ?? ""}` : res.ok ? "Lolos validasi (belum ditulis)." : "Ada galat validasi."} {res.summary && `${res.summary.id} · ${res.summary.indikator} butir`}</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            {res.issues.slice(0, 30).map((i, k) => <li key={k} className={i.level === "error" ? "text-danger" : "text-warn"}><span className="font-mono text-[12px]">{i.where}</span>: {i.message}</li>)}
+            {res.issues.slice(0, 30).map((i, k) => <li key={k} className={i.level === "error" ? "text-danger" : "text-warn"}><span className="font-mono text-code">{i.where}</span>: {i.message}</li>)}
           </ul>
         </div>
       )}

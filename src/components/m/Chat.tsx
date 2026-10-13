@@ -1,66 +1,49 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import SehatiLogo from "@/components/SehatiLogo";
+import { useEffect, useRef, useState } from "react";
 import type { SessionView } from "@/lib/survey/service";
 import { AI_MODE_LABEL } from "@/lib/labels";
 import { ApiError, api, newKey } from "./api";
-import { IconAlert, IconArrowLeft, IconCheck, IconEdit, IconHelp, IconInfo, IconList, IconQuestion, IconSend, IconSpeaker, IconStop } from "./icons";
-import { BTN, Callout, ProgressBar, Sheet, Spinner, Tag } from "./kit";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+import { IconAlert, IconArrowLeft, IconChat, IconCheck, IconEdit, IconHelp, IconInfo, IconList, IconPen, IconQuestion, IconSend, IconSpeaker, IconStop, IconX } from "./icons";
+import { AutoPager, BTN, Callout, Done, EASE, Overlay, overflows, ProgressBar, Sheet, Spinner, Tag, useFitLevel } from "./kit";
 
 const AI_NAME: Record<string, string> = { live: "AI langsung", simulated: "Simulasi (bukan AI)", fallback: "Cadangan aturan" };
 const ORIGIN_NOTE: Record<string, string> = { rules: "Dibaca penafsir aturan (simulasi, bukan AI)", ai: "Dibaca oleh AI" };
 
-/** Avatar kecil penanda pesan dari sistem. */
-function SystemMark() {
-  return (
-    <span aria-hidden className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-card ring-1 ring-line">
-      <SehatiLogo size={16} showWordmark={false} />
-    </span>
-  );
-}
+type Fix = { factId: string; label: string; current: string; options: { value: string; label: string }[] };
 
-/** Percakapan survei: satu pertanyaan sekali tampil, jawaban dengan tombol atau kalimat sendiri, ringkasan pemahaman yang harus dikonfirmasi. */
+/**
+ * Survei satu pertanyaan per layar. Tidak ada log percakapan yang panjang: hanya pertanyaan saat ini dan jawaban
+ * terakhir (bisa diubah). Usulan dari jawaban bebas diperiksa satu per satu. Percakapan lengkap ada di "Lihat percakapan".
+ */
 export function Chat({ initial, onExit, onHelp, onChanged }: { initial: SessionView; onExit: () => void; onHelp: (sessionId: string) => void; onChanged: () => void }) {
   const [v, setV] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [fixing, setFixing] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
+  const [fixingReview, setFixingReview] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [showFacts, setShowFacts] = useState(false);
-  const [confirmStop, setConfirmStop] = useState(false);
+  const [panel, setPanel] = useState<null | "facts" | "transcript" | "stop" | "info" | "explain">(null);
+  const [fix, setFix] = useState<Fix | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const keyRef = useRef<string | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
-  const scroller = useRef<HTMLDivElement>(null);
-  const currentRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const turnId = v.open?.turn_id;
+  const body = useRef<HTMLDivElement>(null);
+  /* Kepadatan adaptif: bila kartu pertanyaan menyita terlalu banyak ruang (huruf besar / layar pendek), ringkaskan. */
+  const fit = useFitLevel(body, 2, (el) => {
+    const q = el.querySelector<HTMLElement>("[data-qcard]");
+    return overflows(el) || (!!q && q.offsetHeight > el.clientHeight * 0.42);
+  }, [turnId, v.review.length, v.session.status, typing]);
 
-  const active0 = v.session.status === "active";
   useEffect(() => {
     headRef.current?.focus({ preventScroll: true });
     setText("");
-    // Gulirkan ke awal bagian yang sedang aktif agar pertanyaan terbaca dari atas.
-    const sc = scroller.current;
-    const cur = currentRef.current;
-    if (!sc) return;
-    const behavior = reduce ? "auto" : "smooth";
-    if (!cur) {
-      sc.scrollTo({ top: sc.scrollHeight, behavior });
-      return;
-    }
-    if (v.history.length === 0 && v.review.length === 0 && active0) {
-      sc.scrollTo({ top: 0, behavior: "auto" });
-      return;
-    }
-    const top = cur.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
-    sc.scrollTo({ top: Math.max(0, top), behavior });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setTyping(false);
+    setFixingReview(null);
   }, [turnId, v.review.length, v.session.status]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
@@ -95,11 +78,11 @@ export function Chat({ initial, onExit, onHelp, onChanged }: { initial: SessionV
   };
   const resolve = (proposal_id: string, action: "confirm" | "correct" | "dismiss", value?: string) => {
     setPicked(`${proposal_id}:${action}${value ? `:${value}` : ""}`);
-    return run(() => api<SessionView>(`/api/survey/sessions/${v.session.id}/proposals/${proposal_id}`, "POST", { action, value, revision: v.session.revision, idem_key: key() })).then(() => setFixing(null));
+    return run(() => api<SessionView>(`/api/survey/sessions/${v.session.id}/proposals/${proposal_id}`, "POST", { action, value, revision: v.session.revision, idem_key: key() })).then(() => setFixingReview(null));
   };
   const correct = (fact_id: string, value: string) => run(() => api<SessionView>(`/api/survey/sessions/${v.session.id}/facts/${fact_id}`, "POST", { value, revision: v.session.revision, idem_key: key() }));
   const stop = () => {
-    setConfirmStop(false);
+    setPanel(null);
     run(() => api<SessionView>(`/api/survey/sessions/${v.session.id}/stop`, "POST", { revision: v.session.revision, idem_key: key() }));
   };
 
@@ -125,315 +108,363 @@ export function Chat({ initial, onExit, onHelp, onChanged }: { initial: SessionV
   const aiHint = s.ai_mode_last && AI_MODE_LABEL[s.ai_mode_last as keyof typeof AI_MODE_LABEL] ? AI_MODE_LABEL[s.ai_mode_last as keyof typeof AI_MODE_LABEL].hint : "";
   const p = v.progress;
   const resolved = p.answered + p.unknown;
-  const showProgress = active && s.mode !== "directed" && p.required > 0;
+  const directed = s.mode === "directed";
   const reviewing = active && v.review.length > 0;
   const asking = active && v.review.length === 0 && !!open;
-  const sysBubble = "rounded-2xl rounded-tl-md border border-line bg-card px-4 py-3 leading-snug text-ink-soft";
-  const mine = "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-brand px-4 py-3 leading-snug text-white";
+  const editable = active && v.review.length === 0;
+  const facility = s.facility_name?.replace(/\s*\(simulasi\)\s*$/i, "");
+
+  const last = v.history.length > 0 ? v.history[v.history.length - 1] : null;
+  const lastFact = last ? v.facts.find((f) => f.turn_id === last.turn_id) : undefined;
+  const openFix = (f: SessionView["facts"][number]) => setFix({ factId: f.id, label: f.slot_label, current: f.value, options: f.editable });
+
+  const progressLabel = !active
+    ? null
+    : reviewing
+      ? "Periksa jawaban"
+      : directed
+        ? "Satu pertanyaan"
+        : p.required > 0
+          ? `Pertanyaan ${Math.min(resolved + 1, p.required)} dari ${p.required}`
+          : null;
+
+  const stepKey = reviewing ? `rv-${v.review[0].id}-${fixingReview ?? ""}` : asking ? `q-${open!.turn_id}-${typing ? "t" : "o"}` : `end-${s.status}`;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-paper">
-      <div className="shrink-0 border-b border-line bg-card">
-        <div className="flex items-center gap-1 px-2 py-2">
-          <button type="button" onClick={onExit} className="grid min-h-11 min-w-11 place-items-center rounded-xl text-ink hover:bg-subtle" aria-label="Kembali ke beranda. Jawaban tersimpan otomatis.">
-            <IconArrowLeft size={22} />
+      <header className="shrink-0 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <div className="flex min-h-12 items-center justify-between gap-2">
+          <button type="button" onClick={onExit} className="-ml-2 inline-flex min-h-12 items-center gap-1.5 rounded-xl px-2 font-semibold text-brand-ink hover:bg-brand-tint" aria-label="Kembali ke beranda. Jawaban tersimpan otomatis.">
+            <IconArrowLeft size={22} /> Beranda
           </button>
-          <div className="min-w-0 flex-1 pr-2">
-            <p className="line-clamp-2 text-[1em] font-semibold leading-tight">{s.mode === "directed" ? "Satu pertanyaan singkat" : s.stage_label}</p>
-            <p className="mt-0.5 truncate text-[0.78em] text-muted">
-              {s.facility_name?.replace(/\s*\(simulasi\)\s*$/i, "")} · {s.episode_kind}
-              {s.respondent_role === "companion" ? " · sebagai pendamping" : ""}
-            </p>
-          </div>
+          {progressLabel && <p className="text-right text-[0.95em] font-semibold tabular-nums text-ink">{progressLabel}</p>}
         </div>
-        {(showProgress || (active && v.facts.length > 0)) && (
-          <div className="px-4 pb-2.5">
-            {showProgress && <ProgressBar value={resolved} max={p.required} label="Kemajuan survei" />}
-            <div className="mt-1.5 flex items-center justify-between gap-3">
-              <p className="text-[0.78em] leading-tight text-ink-soft">
-                {showProgress ? (
-                  <>
-                    <span className="font-semibold text-ink tabular-nums">{resolved} dari {p.required}</span> hal terjawab{p.may_grow ? ", bisa bertambah" : ""}
-                  </>
-                ) : (
-                  <span aria-hidden> </span>
-                )}
-              </p>
-              {v.facts.length > 0 && (
-                <button type="button" onClick={() => setShowFacts(true)} aria-haspopup="dialog" className="-mr-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[0.82em] font-semibold text-brand-ink hover:bg-brand-tint">
-                  <IconList size={17} /> Jawaban saya
-                </button>
-              )}
-            </div>
+        {active && !directed && !reviewing && p.required > 0 && (
+          <div className="mt-1.5">
+            <ProgressBar value={resolved} max={p.required} label="Kemajuan survei" />
           </div>
         )}
-      </div>
+      </header>
 
-      <div ref={scroller} className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4" aria-live="polite">
-        {s.respondent_role === "companion" && (
-          <Callout tone="brand" icon={<IconInfo size={18} className="text-brand" />}>
-            Anda menjawab sebagai pendamping. Jawaban dicatat terpisah dari pengalaman langsung peserta.
-          </Callout>
-        )}
-        {s.uses_draft && (
-          <Callout tone="neutral" icon={<IconInfo size={18} />}>
-            Pertanyaan ini masih draf menunggu validasi. Jawaban Anda bukan dasar penilaian resmi.
-          </Callout>
-        )}
-        {s.mode === "directed" && s.subject && (
-          <div className="flex items-start gap-2">
-            <SystemMark />
-            <div className="rounded-2xl rounded-tl-md bg-brand-soft px-4 py-3 leading-snug text-ink">
-              <p className="font-semibold">Kami ingin memastikan satu hal</p>
-              <p className="mt-1 text-[0.9em] text-ink-soft">Tentang {s.subject.service_lay}, {s.subject.when}. Lupa atau tidak yakin itu wajar, bukan masalah.</p>
-            </div>
-          </div>
-        )}
-        {s.mode !== "directed" && v.history.length === 0 && (
-          <div className="flex items-start gap-2">
-            <SystemMark />
-            <div className="rounded-2xl rounded-tl-md bg-brand-soft px-4 py-3 leading-snug text-ink">
-              <p className="font-semibold">Tidak ada jawaban yang salah.</p>
-              <p className="mt-1 text-[0.9em] text-ink-soft">Jawab sesuai pengalaman Anda. “Lupa / tidak yakin” boleh dipilih, bukan masalah. Berhenti kapan saja.</p>
-            </div>
-          </div>
-        )}
-
-        {v.history.map((h) => (
-          <div key={h.turn_id} className="space-y-2">
-            <div className="flex items-start gap-2">
-              <SystemMark />
-              <p className={`${sysBubble} max-w-[88%] text-[0.95em]`}>{h.question}</p>
-            </div>
-            <p className={`${mine} text-[0.95em]`}>{h.answer}</p>
-          </div>
-        ))}
-
-        {v.notice && (
-          <Callout tone="neutral" role="status" icon={<IconInfo size={18} />}>
-            {v.notice}
-          </Callout>
-        )}
-
+      <div ref={body} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-3 no-scrollbar" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
-          {reviewing && (
-            <motion.div key="review" ref={currentRef} initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE }}>
-              <section aria-labelledby="rv-h" className="rounded-2xl border-2 border-dashed border-warn/50 bg-warn-soft/45 p-4">
-                <Tag tone="warn"><IconEdit size={13} /> Usulan, belum tersimpan</Tag>
-                <h2 id="rv-h" ref={headRef} tabIndex={-1} className="mt-2 text-[1.15em] font-semibold leading-snug outline-none">Ini yang saya tangkap dari jawaban Anda. Sudah benar?</h2>
-                <ul className="mt-3 space-y-3">
-                  {v.review.map((r) => (
-                    <li key={r.id} className="rounded-xl border border-line bg-card p-3.5">
-                      <p className="text-[0.82em] text-muted">{r.slot_label}</p>
-                      <p className="mt-0.5 text-[1.15em] font-semibold leading-snug">{r.value_label}</p>
-                      {r.quote && <p className="mt-2 border-l-2 border-line-strong pl-3 text-[0.88em] italic leading-snug text-ink-soft">dari kalimat Anda: “{r.quote}”</p>}
-                      <p className="mt-1.5 text-[0.75em] leading-snug text-muted">{ORIGIN_NOTE[r.origin]}</p>
-                      {fixing === r.id ? (
-                        <div className="mt-3 grid gap-2">
-                          <p className="text-[0.85em] font-medium text-ink">Pilih jawaban yang tepat:</p>
-                          {r.allowed.filter((a) => a.value !== r.value).map((a) => (
-                            <button key={a.value} type="button" disabled={busy} onClick={() => resolve(r.id, "correct", a.value)} className={`${BTN.secondary} justify-start text-left`}>
-                              {busy && picked === `${r.id}:correct:${a.value}` && <Spinner />} {a.label}
-                            </button>
-                          ))}
-                          <button type="button" onClick={() => setFixing(null)} className={BTN.ghost}>Batal</button>
-                        </div>
-                      ) : (
-                        <div className="mt-3 space-y-2">
-                          <button type="button" disabled={busy} onClick={() => resolve(r.id, "confirm")} className={BTN.primary}>
-                            {busy && picked === `${r.id}:confirm` ? <Spinner /> : <IconCheck size={18} />} Benar
-                          </button>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button type="button" disabled={busy} onClick={() => setFixing(r.id)} className={BTN.secondary}>Ubah</button>
-                            <button type="button" disabled={busy} onClick={() => resolve(r.id, "dismiss")} className={BTN.secondary}>
-                              {busy && picked === `${r.id}:dismiss` && <Spinner />} Bukan itu
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </motion.div>
-          )}
+          <motion.div
+            key={stepKey}
+            className="flex min-h-0 flex-1 flex-col gap-3"
+            initial={{ opacity: 0, x: reduce ? 0 : 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: reduce ? 0 : -24 }}
+            transition={{ duration: 0.22, ease: EASE }}
+          >
+            {(v.notice || err) && (
+              <Callout tone={err ? "danger" : "neutral"} role={err ? "alert" : "status"} icon={err ? <IconAlert size={18} /> : <IconInfo size={18} />}>
+                {err ?? v.notice}
+              </Callout>
+            )}
 
-          {asking && open && (
-            <motion.div key={open.turn_id} ref={currentRef} initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE }}>
-              <section aria-labelledby="q-h" className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <SystemMark />
-                  <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-line bg-card p-4 shadow-depth-1">
-                    {open.kind !== "core" && <p className="mb-1.5"><Tag tone="muted">Pertanyaan lanjutan</Tag></p>}
-                    <h2 id="q-h" ref={headRef} tabIndex={-1} className="text-[1.1em] font-semibold leading-snug outline-none">{open.text}</h2>
-                    {open.helper && <p className="mt-1.5 text-[0.88em] leading-snug text-ink-soft">{open.helper}</p>}
-                    {open.glossary.map((g) => (
-                      <p key={g.term} className="mt-2 rounded-lg bg-subtle px-3 py-2 text-[0.85em] leading-snug text-ink-soft"><span className="font-semibold text-ink">{g.term}:</span> {g.plain}</p>
-                    ))}
-                    {open.needs_rephrase && <p className="mt-2 flex gap-2 rounded-lg bg-warn-soft px-3 py-2 text-[0.85em] leading-snug text-warn"><IconAlert size={17} className="mt-0.5 shrink-0" /> Silakan pilih salah satu jawaban di bawah, atau tulis dengan kalimat lain.</p>}
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <button type="button" onClick={() => listen(open.text)} aria-pressed={speaking} className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-[0.85em] font-semibold text-ink-soft hover:bg-subtle hover:text-ink">
-                        {speaking ? <IconStop size={17} /> : <IconSpeaker size={17} />} {speaking ? "Hentikan suara" : "Dengarkan"}
+            {/* ---------- Pertanyaan ---------- */}
+            {asking && open && (
+              <>
+                {last && last.answer && fit < 2 && (
+                  <div className="flex shrink-0 items-center gap-2 rounded-2xl bg-card py-1.5 pl-3.5 pr-1.5 shadow-e1">
+                    <p className="min-w-0 flex-1 truncate text-[0.92em] leading-snug text-ink-soft">
+                      Jawaban tadi: <span className="font-semibold text-ink">{lastFact?.value_label ?? last.answer}</span>
+                    </p>
+                    {lastFact && lastFact.editable.length > 1 && (
+                      <button type="button" onClick={() => openFix(lastFact)} disabled={busy} className="inline-flex min-h-12 shrink-0 items-center gap-1 rounded-xl px-3 font-semibold text-brand-ink hover:bg-brand-tint">
+                        <IconEdit size={17} /> Ubah
                       </button>
-                      {open.text_source === "ai_phrase" && <span className="text-[0.78em] text-muted">Kalimat dibantu AI</span>}
-                    </div>
-                  </div>
-                </div>
-                {open.options.length > 0 && (
-                  <div className="grid gap-2" role="group" aria-label="Pilihan jawaban">
-                    {open.options.map((o) => {
-                      const soft = o.value === "unknown" || o.value === "not_understood";
-                      const on = busy && picked === o.value;
-                      return (
-                        <button
-                          key={o.value}
-                          type="button"
-                          disabled={busy}
-                          aria-pressed={on}
-                          onClick={() => answer({ choice: o.value })}
-                          className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left text-[1.05em] font-semibold leading-snug transition-colors duration-150 active:scale-[0.99] disabled:cursor-not-allowed ${
-                            on
-                              ? "border-brand bg-brand-soft text-brand-ink"
-                              : soft
-                                ? "border-dashed border-line-strong bg-paper text-ink-soft hover:bg-subtle disabled:opacity-50"
-                                : "border-line-strong bg-card text-ink hover:border-brand hover:bg-brand-tint disabled:opacity-50"
-                          }`}
-                        >
-                          <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full ${on ? "bg-brand text-white" : soft ? "text-muted" : "border-2 border-line-strong"}`}>
-                            {on ? <Spinner size={14} /> : soft ? <IconQuestion size={20} /> : null}
-                          </span>
-                          {o.label}
-                        </button>
-                      );
-                    })}
+                    )}
                   </div>
                 )}
-                {open.text_allowed && (
+
+                <section data-qcard aria-labelledby="q-h" className={`shrink-0 rounded-[1.75rem] bg-card shadow-e2 ${fit ? "p-4" : "p-5"}`}>
+                  {v.history.length === 0 && !typing && fit === 0 && (
+                    <p className="text-[0.92em] font-semibold leading-snug text-brand-ink">
+                      {directed ? "Lupa atau tidak yakin itu wajar." : "Tidak ada jawaban yang salah."}
+                      {s.respondent_role === "companion" ? " Anda menjawab sebagai pendamping." : ""}
+                    </p>
+                  )}
+                  <h2 id="q-h" ref={headRef} tabIndex={-1} className={`font-semibold leading-tight tracking-tight outline-none ${v.history.length === 0 && !typing && fit === 0 ? "mt-1.5" : ""} ${typing || fit >= 2 ? "text-[1.12em]" : fit === 1 ? "text-[1.2em]" : "text-[1.3em]"}`}>{open.text}</h2>
+                  {open.needs_rephrase && <p className="mt-2 flex gap-2 rounded-xl bg-warn-soft px-3 py-2 text-[0.92em] leading-snug text-warn"><IconAlert size={18} className="mt-0.5 shrink-0" /> Maaf, belum jelas. Pilih jawaban, atau tulis dengan kalimat lain.</p>}
+                  {!typing && (
+                    <div className={`-ml-2 mt-1.5 flex flex-wrap gap-x-1 ${fit >= 2 ? "text-[0.92em]" : ""}`}>
+                      <button type="button" onClick={() => listen(open.text)} aria-pressed={speaking} className="inline-flex min-h-12 items-center gap-2 rounded-xl px-2 font-semibold text-brand-ink hover:bg-brand-tint">
+                        {speaking ? <IconStop size={20} /> : <IconSpeaker size={20} />} {speaking ? "Hentikan" : "Dengarkan"}
+                      </button>
+                      {(open.helper || open.glossary.length > 0 || s.uses_draft) && (
+                        <button type="button" onClick={() => setPanel("explain")} aria-haspopup="dialog" className="inline-flex min-h-12 items-center gap-2 rounded-xl px-2 font-semibold text-brand-ink hover:bg-brand-tint">
+                          <IconInfo size={20} /> Penjelasan
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {!typing && open.options.length > 0 && (
+                  <AutoPager
+                    label="Halaman pilihan jawaban"
+                    resetKey={open.turn_id}
+                    items={[
+                      ...open.options.map((o) => {
+                        const soft = o.value === "unknown" || o.value === "not_understood";
+                        const on = busy && picked === o.value;
+                        return {
+                          key: o.value,
+                          node: (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              aria-pressed={on}
+                              onClick={() => answer({ choice: o.value })}
+                              className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left text-[1.05em] font-semibold leading-snug shadow-e1 transition-colors duration-150 active:scale-[0.99] disabled:cursor-not-allowed ${
+                                on ? "border-brand bg-brand-soft text-brand-ink" : soft ? "border-line-strong bg-paper text-ink hover:bg-subtle disabled:opacity-50" : "border-line-strong bg-card text-ink hover:border-brand hover:bg-brand-tint disabled:opacity-50"
+                              }`}
+                            >
+                              <span aria-hidden className={`grid size-7 shrink-0 place-items-center rounded-full ${on ? "bg-brand text-white" : soft ? "text-ink-soft" : "border-2 border-line-strong"}`}>
+                                {on ? <Spinner size={15} /> : soft ? <IconQuestion size={22} /> : null}
+                              </span>
+                              {o.label}
+                            </button>
+                          ),
+                        };
+                      }),
+                      ...(open.text_allowed
+                        ? [{
+                            key: "__write",
+                            node: (
+                              <button type="button" disabled={busy} onClick={() => setTyping(true)} className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left font-semibold leading-snug text-brand-ink transition-colors hover:bg-brand-tint">
+                                <IconPen size={22} className="shrink-0" /> Tulis dengan kalimat sendiri
+                              </button>
+                            ),
+                          }]
+                        : []),
+                    ]}
+                  />
+                )}
+
+                {open.text_allowed && (typing || open.options.length === 0) && (
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       if (text.trim()) answer({ text });
                     }}
-                    className="space-y-2 rounded-2xl border border-line bg-card p-3.5"
+                    className="flex min-h-0 flex-1 flex-col gap-2.5"
                   >
-                    <label htmlFor="free" className="block text-[0.88em] font-semibold text-ink">{open.options.length ? "Atau tulis dengan kalimat Anda sendiri" : "Tulis jawaban Anda"}</label>
-                    <textarea id="free" value={text} onChange={(e) => setText(e.target.value)} maxLength={600} rows={3} placeholder="Contoh: obatnya baru sebagian yang saya terima" className="w-full rounded-xl border border-line-strong bg-paper p-3 leading-snug" />
-                    <button type="submit" disabled={busy || !text.trim()} className={open.options.length ? BTN.secondary : BTN.primary}>
-                      {busy && picked === "__text" ? <Spinner /> : <IconSend size={18} />} {busy && picked === "__text" ? "Membaca jawaban…" : "Kirim jawaban"}
+                    <label htmlFor="free" className="shrink-0 font-semibold">Tulis jawaban Anda</label>
+                    <textarea id="free" value={text} onChange={(e) => setText(e.target.value)} maxLength={600} placeholder="Contoh: obatnya baru sebagian yang saya terima" className="min-h-[4.5em] w-full flex-1 resize-none rounded-2xl border border-line-strong bg-card p-3.5 leading-snug shadow-e1" />
+                    <button type="submit" disabled={busy || !text.trim()} className={`${BTN.primary} shrink-0`}>
+                      {busy && picked === "__text" ? <Spinner /> : <IconSend size={20} />} {busy && picked === "__text" ? "Membaca jawaban…" : "Kirim jawaban"}
                     </button>
+                    {typing && open.options.length > 0 && (
+                      <button type="button" onClick={() => setTyping(false)} className={`${BTN.ghost} shrink-0`}>
+                        <IconArrowLeft size={20} /> Pilih jawaban saja
+                      </button>
+                    )}
                   </form>
                 )}
-              </section>
-            </motion.div>
-          )}
+                {!(open.options.length > 0 && !typing) && !open.text_allowed && <div className="flex-1" />}
+              </>
+            )}
 
-          {!active && v.outcome && (
-            <motion.div key="done" ref={currentRef} initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: EASE }}>
-              <section aria-labelledby="done-h" className="space-y-3 rounded-2xl border border-line bg-card p-5">
-                <span className="grid size-14 place-items-center rounded-full bg-ok-soft text-ok" aria-hidden><IconCheck size={28} /></span>
-                <h2 id="done-h" ref={headRef} tabIndex={-1} className="text-[1.3em] font-semibold leading-snug outline-none">{v.outcome.status === "completed" ? "Terima kasih, sudah selesai" : v.outcome.status === "cancelled" ? "Survei dibatalkan" : "Terima kasih. Jawaban Anda tersimpan"}</h2>
-                {v.outcome.lines.map((l) => <p key={l} className="text-[0.92em] leading-snug text-ink-soft">{l}</p>)}
-                {v.facts.length > 0 && (
-                  <div className="rounded-xl border border-line bg-paper p-3.5">
-                    <p className="flex items-center gap-1.5 text-[0.85em] font-semibold text-ok"><IconCheck size={16} /> Jawaban yang tersimpan</p>
-                    <ul className="mt-2 divide-y divide-line">
-                      {v.facts.map((f) => (
-                        <li key={f.id} className="py-2 text-[0.9em] leading-snug first:pt-0 last:pb-0">
-                          <span className="block text-[0.88em] text-muted">{f.slot_label}</span>
-                          <span className="font-semibold">{f.value_label}</span>
-                          {f.corrected && <span className="text-muted"> (sudah Anda ubah)</span>}
-                        </li>
-                      ))}
-                    </ul>
+            {/* ---------- Periksa usulan (satu per layar) ---------- */}
+            {reviewing && (() => {
+              const r = v.review[0];
+              return (
+                <section aria-labelledby="rv-h" className="flex min-h-0 flex-1 flex-col gap-3">
+                  <div className="flex shrink-0 items-center justify-between gap-2">
+                    <Tag tone="warn"><IconEdit size={14} /> Belum tersimpan</Tag>
+                    {v.review.length > 1 && <span className="text-[0.92em] font-semibold text-ink-soft">1 dari {v.review.length}</span>}
                   </div>
-                )}
-                {v.outcome.reports_created > 0 && (
-                  <Callout tone="brand" icon={<IconInfo size={18} className="text-brand" />}>
-                    Kendala yang Anda sebut diteruskan ke petugas sebagai informasi awal, bukan tuduhan. Pantau di beranda, pada “Laporan saya”.
-                  </Callout>
-                )}
-                <button type="button" onClick={onExit} className={BTN.primary}>Kembali ke beranda</button>
-              </section>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <h2 id="rv-h" ref={headRef} tabIndex={-1} className="shrink-0 text-[1.35em] font-semibold leading-tight tracking-tight outline-none">Ini yang saya tangkap. Sudah benar?</h2>
+                  <div className="shrink-0 rounded-[1.75rem] bg-card p-5 shadow-e2 ring-2 ring-warn/25">
+                    <p className="text-[0.92em] leading-snug text-ink-soft">{r.slot_label}</p>
+                    <p className="mt-1 text-[1.35em] font-semibold leading-tight">{r.value_label}</p>
+                    {r.quote && <p className="mt-3 line-clamp-3 border-l-[3px] border-line-strong pl-3 leading-snug text-ink-soft">“{r.quote}”</p>}
+                    <p className="mt-2 text-[0.85em] leading-snug text-ink-soft">{ORIGIN_NOTE[r.origin]}</p>
+                  </div>
+                  {fixingReview === r.id ? (
+                    <>
+                      <p className="shrink-0 font-semibold">Pilih yang tepat:</p>
+                      <AutoPager
+                        label="Halaman pilihan pengganti"
+                        items={[
+                          ...r.allowed.filter((a) => a.value !== r.value).map((a) => ({
+                            key: a.value,
+                            node: (
+                              <button type="button" disabled={busy} onClick={() => resolve(r.id, "correct", a.value)} className={`${BTN.secondary} justify-start text-left`}>
+                                {busy && picked === `${r.id}:correct:${a.value}` && <Spinner />} {a.label}
+                              </button>
+                            ),
+                          })),
+                          { key: "__cancel", node: <button type="button" onClick={() => setFixingReview(null)} className={BTN.ghost}><IconX size={18} /> Batal</button> },
+                        ]}
+                      />
+                    </>
+                  ) : (
+                    <div className="mt-auto grid shrink-0 gap-2">
+                      <button type="button" disabled={busy} onClick={() => resolve(r.id, "confirm")} className={`${BTN.primary} min-h-16 text-[1.1em]`}>
+                        {busy && picked === `${r.id}:confirm` ? <Spinner /> : <IconCheck size={22} />} Benar
+                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" disabled={busy} onClick={() => setFixingReview(r.id)} className={BTN.secondary}>Ubah</button>
+                        <button type="button" disabled={busy} onClick={() => resolve(r.id, "dismiss")} className={BTN.secondary}>
+                          {busy && picked === `${r.id}:dismiss` && <Spinner />} Bukan itu
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
-        {v.help_open && (
-          <Callout tone="warn" icon={<IconAlert size={18} className="text-warn" />}>
-            Pesan Anda diteruskan ke petugas. Ini bukan saran medis; bila darurat, segera ke IGD terdekat.
-          </Callout>
-        )}
-        {err && (
-          <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>
-            {err}
-          </Callout>
-        )}
+            {/* ---------- Selesai ---------- */}
+            {!active && v.outcome && (
+              <Done
+                title={v.outcome.status === "completed" ? "Terima kasih, sudah selesai" : v.outcome.status === "cancelled" ? "Survei dibatalkan" : "Terima kasih, jawaban tersimpan"}
+                action={
+                  <div className="grid gap-2">
+                    {v.facts.length > 0 && (
+                      <button type="button" onClick={() => setPanel("facts")} className={BTN.secondary}>
+                        <IconList size={20} /> Lihat jawaban saya ({v.facts.length})
+                      </button>
+                    )}
+                    <button type="button" onClick={onExit} className={BTN.primary}>Kembali ke beranda</button>
+                  </div>
+                }
+              >
+                {v.outcome.lines.map((l) => <p key={l}>{l}</p>)}
+                {v.outcome.reports_created > 0 && <p className="font-medium text-ink">Kendala yang Anda sebut sudah diteruskan ke petugas.</p>}
+                {v.help_open && <p>Permintaan bantuan Anda diteruskan ke petugas.</p>}
+              </Done>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {active && (
-        <div className="shrink-0 border-t border-line bg-card px-3 pb-2 pt-2">
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => onHelp(s.id)} className={`${BTN.ghost} border border-line py-1.5 text-[14px] text-ink`}>
-              <IconHelp size={16} className="shrink-0" /> Butuh bantuan petugas
-            </button>
-            <button type="button" onClick={() => setConfirmStop(true)} disabled={busy} aria-haspopup="dialog" className={`${BTN.ghost} border border-line py-1.5 text-[14px]`}>
-              Berhenti sekarang
-            </button>
+        <nav aria-label="Pilihan survei" className="shrink-0 border-t border-line bg-card px-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] pt-1.5">
+          <div className="grid grid-cols-3 gap-1">
+            {[
+              { label: "Bantuan", Icon: IconHelp, act: () => onHelp(s.id), dot: v.help_open },
+              { label: "Jawaban saya", Icon: IconList, act: () => setPanel("facts"), dot: false },
+              { label: "Berhenti", Icon: IconStop, act: () => setPanel("stop"), dot: false },
+            ].map(({ label, Icon, act, dot }) => (
+              <button key={label} type="button" onClick={act} disabled={busy && label === "Berhenti"} className="relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[0.8em] font-semibold leading-none text-ink-soft transition-colors hover:bg-subtle hover:text-ink disabled:opacity-50">
+                <span className="relative">
+                  <Icon size={24} />
+                  {dot && <span className="absolute -right-1 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-card" aria-hidden />}
+                </span>
+                {label}
+              </button>
+            ))}
           </div>
-          <details className="group mt-1">
-            <summary className="flex min-h-9 cursor-pointer items-center justify-between gap-2 px-1 text-[0.75em] leading-snug text-muted">
-              <span>{aiLabel ? <>Pemahaman jawaban bebas: <strong className="font-semibold text-ink-soft">{aiLabel}</strong></> : "Cara jawaban Anda dibaca"}</span>
-              <span className="shrink-0 font-semibold text-ink-soft underline underline-offset-2 group-open:hidden">Selengkapnya</span>
-            </summary>
-            <p className="px-1 pb-1 text-[0.75em] leading-snug text-muted">
-              AI membantu memahami kalimat Anda; aturan menentukan pertanyaan. AI tidak memutuskan apa pun.
-              {aiHint ? ` ${aiHint}` : ""}
-            </p>
-          </details>
-        </div>
+        </nav>
       )}
 
       <AnimatePresence>
-        {showFacts && (
-          <Sheet key="facts" title="Jawaban saya" titleId="fs-h" onClose={() => setShowFacts(false)}>
-            <FactsList v={v} busy={busy} editable={active && v.review.length === 0} onFix={correct} />
+        {panel === "facts" && (
+          <Overlay key="facts" title="Jawaban saya" onClose={() => setPanel(null)}>
+            {v.facts.length === 0 ? (
+              <p className="leading-snug text-ink-soft">Belum ada jawaban tersimpan.</p>
+            ) : (
+              <AutoPager
+                label="Halaman jawaban"
+                items={v.facts.map((f) => ({
+                  key: f.id,
+                  node: (
+                    <div className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-e1">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[0.92em] leading-snug text-ink-soft">{f.slot_label}</p>
+                        <p className="mt-0.5 text-[1.05em] font-semibold leading-snug">{f.value_label}{f.corrected && <span className="font-normal text-ink-soft"> (diubah)</span>}</p>
+                      </div>
+                      {editable && f.editable.length > 1 && (
+                        <button type="button" disabled={busy} onClick={() => openFix(f)} className="inline-flex min-h-12 shrink-0 items-center gap-1 rounded-xl px-2.5 font-semibold text-brand-ink hover:bg-brand-tint">
+                          <IconEdit size={17} /> Ubah
+                        </button>
+                      )}
+                    </div>
+                  ),
+                }))}
+              />
+            )}
+            <div className="mt-3 grid shrink-0 grid-cols-2 gap-2">
+              <button type="button" disabled={v.history.length === 0} onClick={() => setPanel("transcript")} className={`${BTN.secondary} px-2 text-[0.92em]`}>
+                <IconChat size={20} className="shrink-0" /> Percakapan
+              </button>
+              <button type="button" onClick={() => setPanel("info")} className={`${BTN.secondary} px-2 text-[0.92em]`}>
+                <IconInfo size={20} className="shrink-0" /> Cara dibaca
+              </button>
+            </div>
+          </Overlay>
+        )}
+        {panel === "transcript" && (
+          <Overlay key="tr" title="Lihat percakapan" onClose={() => setPanel("facts")}>
+            <AutoPager
+              label="Halaman percakapan"
+              items={v.history.map((h) => ({
+                key: h.turn_id,
+                node: (
+                  <div className="space-y-1.5">
+                    <p className="rounded-2xl rounded-tl-md bg-card px-4 py-3 leading-snug text-ink shadow-e1">{h.question}</p>
+                    {h.answer && <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-brand px-4 py-3 leading-snug text-white shadow-e1">{h.answer}</p>}
+                  </div>
+                ),
+              }))}
+            />
+          </Overlay>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {panel === "stop" && (
+          <Sheet key="stop" title="Berhenti sekarang?" titleId="stop-h" onClose={() => setPanel(null)}>
+            <p className="leading-snug text-ink-soft">Jawaban yang sudah ada tetap tersimpan. Sisanya tidak ditanyakan lagi.</p>
+            <div className="grid gap-2 pt-1">
+              <button type="button" onClick={() => setPanel(null)} className={BTN.primary}>Lanjut menjawab</button>
+              <button type="button" onClick={stop} className={BTN.secondary}>Ya, berhenti</button>
+            </div>
           </Sheet>
         )}
-        {confirmStop && (
-          <Sheet key="stop" title="Berhenti sekarang?" titleId="stop-h" onClose={() => setConfirmStop(false)}>
-            <p className="text-[0.92em] leading-snug text-ink-soft">Jawaban yang sudah Anda konfirmasi tetap tersimpan, sisanya tidak ditanyakan lagi.</p>
-            <div className="grid gap-2 pt-1">
-              <button type="button" onClick={() => setConfirmStop(false)} className={BTN.primary}>Lanjut menjawab</button>
-              <button type="button" onClick={stop} className={BTN.secondary}>Ya, berhenti</button>
+        {panel === "explain" && open && (
+          <Sheet key="explain" title="Penjelasan" titleId="ex-h" onClose={() => setPanel(null)}>
+            {open.helper && <p className="leading-snug text-ink">{open.helper}</p>}
+            {open.glossary.map((g) => (
+              <p key={g.term} className="rounded-xl bg-subtle px-3 py-2 leading-snug text-ink-soft"><span className="font-semibold text-ink">{g.term}:</span> {g.plain}</p>
+            ))}
+            {s.uses_draft && <p className="leading-snug text-ink-soft">Pertanyaan ini masih draf menunggu validasi. Jawaban Anda bukan dasar penilaian resmi.</p>}
+            <button type="button" onClick={() => setPanel(null)} className={BTN.primary}>Mengerti</button>
+          </Sheet>
+        )}
+        {panel === "info" && (
+          <Sheet key="info" title="Cara jawaban dibaca" titleId="info-h" onClose={() => setPanel("facts")}>
+            {aiLabel && <p className="leading-snug">Pemahaman jawaban bebas: <strong className="font-semibold">{aiLabel}</strong></p>}
+            <p className="leading-snug text-ink-soft">AI membantu memahami kalimat Anda; aturan menentukan pertanyaan. AI tidak memutuskan apa pun.{aiHint ? ` ${aiHint}` : ""}</p>
+          </Sheet>
+        )}
+        {fix && (
+          <Sheet key="fix" title="Ubah jawaban" titleId="fix-h" onClose={() => setFix(null)}>
+            <p className="leading-snug text-ink-soft">{fix.label}</p>
+            <div className="grid gap-2">
+              {fix.options.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    if (o.value !== fix.current) void correct(fix.factId, o.value);
+                    setFix(null);
+                  }}
+                  aria-pressed={o.value === fix.current}
+                  className={`${o.value === fix.current ? `${BTN.outline} bg-brand-soft` : BTN.secondary} justify-start text-left`}
+                >
+                  {o.value === fix.current && <IconCheck size={20} className="shrink-0" />} {o.label}
+                </button>
+              ))}
             </div>
           </Sheet>
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function FactsList({ v, busy, editable, onFix }: { v: SessionView; busy: boolean; editable: boolean; onFix: (factId: string, value: string) => void }): ReactNode {
-  return (
-    <>
-      <p className="text-[0.88em] leading-snug text-ink-soft">{editable ? "Salah memilih? Ubah di sini. Pertanyaan berikutnya menyesuaikan." : "Dapat diubah saat sesi berjalan dan tanpa usulan yang menunggu."}</p>
-      <ul className="space-y-2">
-        {v.facts.map((f) => (
-          <li key={f.id} className="rounded-xl border border-line bg-card p-3.5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[0.82em] text-muted">{f.slot_label}</p>
-              <Tag tone={f.corrected ? "info" : "ok"}><IconCheck size={12} /> {f.corrected ? "Sudah diubah" : "Tersimpan"}</Tag>
-            </div>
-            {editable ? (
-              <select value={f.value} disabled={busy} onChange={(e) => onFix(f.id, e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-line-strong bg-card px-3 font-semibold" aria-label={`Ubah jawaban: ${f.slot_label}`}>
-                {f.editable.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            ) : (
-              <p className="mt-1 font-semibold leading-snug">{f.value_label}</p>
-            )}
-          </li>
-        ))}
-      </ul>
-    </>
   );
 }

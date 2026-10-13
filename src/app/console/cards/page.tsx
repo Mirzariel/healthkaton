@@ -3,7 +3,7 @@ import { Disclosure } from "@/components/analytics/blocks";
 import { PolicyEditor, RecomputeButton } from "@/components/pkbi/CardForms";
 import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, SimNotice, SourceBadge, StatusPill, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
-import { CARD_LIMITS, getActiveCardPolicy, listCardPolicies, listCards, parseParams, periodLabel } from "@/lib/cards/compute";
+import { getActiveCardPolicy, listCardPolicies, listCards, parseParams, periodLabel } from "@/lib/cards/compute";
 import { getDb } from "@/lib/db";
 import { getPrincipal } from "@/lib/server";
 import { LevelPill } from "./CardBits";
@@ -23,31 +23,31 @@ export default async function CardsPage() {
   const open = cards.reduce((n, c) => n + c.disputes.filter((d) => d.status === "open").length, 0);
   return (
     <>
-      <PageHeader title="Kartu pembinaan faskes" eyebrow="Mutu dan keuangan" purpose="Alat pembinaan dan review terjadwal, dengan angka mentah dan pembanding sejawat.">
+      <PageHeader title="Kartu pembinaan faskes" eyebrow="Mutu dan keuangan" purpose="Bahan pembinaan, dibandingkan dengan faskes sejawat.">
         {can(me, "cards.configure") && <RecomputeButton />}
       </PageHeader>
-      <SimNotice>{CARD_LIMITS} Versi parameter {policy.id} berstatus <strong>{policy.status === "validated" ? "tervalidasi" : "DRAFT"}</strong>: {params.label}</SimNotice>
+      <SimNotice>Bukan vonis, peringkat, sanksi, atau pernyataan fraud. Parameter {policy.id} berstatus <strong>{policy.status === "validated" ? "tervalidasi" : "DRAFT"}</strong>.</SimNotice>
 
       <Section className="mt-8">
-        <SectionTitle title="Kartu per faskes dan periode" hint={`Per ${params.period === "quarter" ? "kuartal" : "bulan"}. Kuning/merah = dasar pembinaan, bukan indikasi fraud.${open ? ` ${open} bantahan menunggu jawaban.` : ""}`}>
+        <SectionTitle title="Kartu per faskes dan periode" hint={`Per ${params.period === "quarter" ? "kuartal" : "bulan"}.${open ? ` ${open} bantahan menunggu jawaban.` : ""}`}>
           <SourceBadge source="simulated" />
         </SectionTitle>
         <TableCard label="Kartu per faskes dan periode">
           {cards.length === 0 ? <EmptyState title="Belum ada kartu">Hitung ulang kartu bila data sudah tersedia.</EmptyState> : (
-            <table className="w-full text-left text-[13.5px]">
+            <table className="table-stack w-full text-left text-body-sm">
               <thead><tr><th className="px-4 py-2.5">Faskes</th>{periods.map((p) => <th key={p} className="px-4 py-2.5">{periodLabel(p)}</th>)}</tr></thead>
               <tbody>
                 {facilities.map(([id, name]) => (
                   <tr key={id}>
                     <td className="px-4 py-3"><Link className="font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current" href={`/console/cards/${id}`}>{name}</Link></td>
-                    {periods.map((p) => { const c = cell.get(`${id}|${p}`); return <td key={p} className="px-4 py-3">{c ? <Link href={`/console/cards/${id}?period=${p}`} className="inline-block rounded-md" aria-label={`${name}, ${periodLabel(p)}`}><LevelPill level={c.level} /></Link> : <span className="text-muted">-</span>}</td>; })}
+                    {periods.map((p) => { const c = cell.get(`${id}|${p}`); return <td key={p} data-label={periodLabel(p)} className="px-4 py-3">{c ? <Link href={`/console/cards/${id}?period=${p}`} className="inline-block rounded-md" aria-label={`${name}, ${periodLabel(p)}`}><LevelPill level={c.level} /></Link> : <span className="text-muted">-</span>}</td>; })}
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </TableCard>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-ink-soft" aria-label="Keterangan level kartu">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-caption text-ink-soft" aria-label="Keterangan level kartu">
           <span className="text-muted">Level:</span>
           <LevelPill level="none" /><LevelPill level="yellow" /><LevelPill level="red" /><LevelPill level="insufficient_data" />
         </div>
@@ -55,9 +55,10 @@ export default async function CardsPage() {
 
       <Section className="mt-10">
         <Disclosure title="Cara membaca kartu">
-          <ul className="list-disc space-y-2 pl-5 text-[13.5px] leading-relaxed text-ink-soft">
+          <ul className="list-disc space-y-2 pl-5 text-body-sm leading-relaxed text-ink-soft">
             <li>Faskes dibandingkan hanya dengan faskes sejawat (kelompok yang sama) pada periode yang sama. Bila sejawat kurang dari {params.min_peers}, kartu menjadi “Data belum cukup”, bukan hijau.</li>
             <li>Kuning bila metrik melebihi {params.yellow_ratio}× pembanding dan lantai. Merah bila sedikitnya {params.min_metrics_for_red} metrik melebihi {params.red_ratio}× pembanding.</li>
+            <li>{params.label}</li>
             <li>Kartu tidak pernah mengubah klaim, pembayaran, atau status kasus.</li>
           </ul>
         </Disclosure>
@@ -69,8 +70,8 @@ export default async function CardsPage() {
           <Card>
             <ul className="divide-y divide-line">
               {listCardPolicies(db).map((v) => (
-                <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-[13.5px]">
-                  <span className="font-mono text-[12px]">{v.id}</span>
+                <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-body-sm">
+                  <span className="font-mono text-code">{v.id}</span>
                   <StatusPill tone={v.status === "validated" ? "ok" : "muted"}>{v.status === "validated" ? "tervalidasi" : "draft"}</StatusPill>
                   {v.id === policy.id && <StatusPill tone="info" dot={false}>aktif</StatusPill>}
                 </li>

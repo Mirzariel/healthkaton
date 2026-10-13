@@ -6,7 +6,7 @@ import { can } from "@/lib/auth/principal";
 import { getDb } from "@/lib/db";
 import { STAGE_LABEL, TONE_CLASS } from "@/lib/labels";
 import { getPrincipal } from "@/lib/server";
-import { APPROVAL_DISCLAIMER, getStandardVersion, standardIssues } from "@/lib/standards/registry";
+import { getStandardVersion, standardIssues } from "@/lib/standards/registry";
 import type { StageKey } from "@/lib/standards/types";
 
 export const dynamic = "force-dynamic";
@@ -40,29 +40,29 @@ export default async function StandardDetail({ params }: { params: Promise<{ id:
       >
         <StatusPill tone={STATUS_TONE[d.version.status] ?? "muted"}>{d.version.status}</StatusPill>
       </PageHeader>
-      <SimNotice>{APPROVAL_DISCLAIMER}</SimNotice>
+      <SimNotice>“Disetujui tim” hanya hasil review tim SEHATI, bukan pengesahan BPJS atau Kemenkes.</SimNotice>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 space-y-9">
           {stages.map((st) => (
             <section key={st} className="space-y-3" aria-labelledby={`st-${st}`}>
-              <h2 id={`st-${st}`} className="text-[15px] font-semibold tracking-tight text-ink">{STAGE_LABEL[st] ?? st}</h2>
+              <h2 id={`st-${st}`} className="text-body font-semibold tracking-tight text-ink">{STAGE_LABEL[st] ?? st}</h2>
               {d.indicators.filter((i) => i.stage === st).map((i) => (
                 <Card key={i.id}>
                   <div className="px-5 py-4">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="mr-1 font-mono text-[12px] text-muted">{i.indicator_id}</span>
+                      <span className="mr-1 font-mono text-code text-muted">{i.indicator_id}</span>
                       <Pill className={TONE_CLASS.muted}>{i.kind}</Pill>
                       {i.source_id ? <Pill className={TONE_CLASS.info} title={i.locator ?? undefined}>Sumber {i.source_id}</Pill> : <Pill className={TONE_CLASS.warn}>Tanpa sumber</Pill>}
                       {i.scope.length > 0 && <Pill className={TONE_CLASS.muted}>{i.scope.join(", ")}</Pill>}
                     </div>
-                    <h3 className="mt-2.5 text-[15px] font-semibold text-ink">{i.title}</h3>
-                    {i.locator && <p className="mt-1 text-[12.5px] leading-relaxed text-muted">Lokator: {i.locator}</p>}
+                    <h3 className="mt-2.5 text-body font-semibold text-ink">{i.title}</h3>
+                    {i.locator && <p className="mt-1 text-caption leading-relaxed text-muted">Lokator: {i.locator}</p>}
                   </div>
                   <ul className="divide-y divide-line border-t border-line">
                     {d.questions.filter((q) => q.indicator_version_id === i.id).map((q) => (
-                      <li key={q.id} className="bg-subtle/40 px-5 py-3 text-[14px] leading-relaxed">
-                        <span className="mb-0.5 block font-mono text-[11.5px] text-muted">{q.target_slot}{q.is_core ? "" : " · tambahan"}</span>
+                      <li key={q.id} className="bg-subtle/40 px-5 py-3 text-body-sm leading-relaxed">
+                        <span className="mb-0.5 block font-mono text-code text-muted">{q.target_slot}{q.is_core ? "" : " · tambahan"}</span>
                         <QuestionEditor id={q.id} text={q.text} editable={editable} />
                       </li>
                     ))}
@@ -82,9 +82,9 @@ export default async function StandardDetail({ params }: { params: Promise<{ id:
             <SectionTitle title="Validasi" />
             {issues.length === 0 ? <Notice tone="ok">Tidak ada galat atau peringatan.</Notice> : (
               <Inset>
-                <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted"><span className="tabular-nums">{errors}</span> galat, <span className="tabular-nums">{issues.length - errors}</span> peringatan</p>
+                <p className="border-b border-line px-4 py-2.5 text-caption text-muted"><span className="tabular-nums">{errors}</span> galat, <span className="tabular-nums">{issues.length - errors}</span> peringatan</p>
                 <ul className="divide-y divide-line">
-                  {issues.slice(0, 20).map((x, k) => <li key={k} className={`px-4 py-2.5 text-[13px] leading-relaxed ${x.level === "error" ? "text-danger" : "text-warn"}`}><span className="font-mono text-[11.5px]">{x.where}</span>: {x.message}</li>)}
+                  {issues.slice(0, 20).map((x, k) => <li key={k} className={`px-4 py-2.5 text-caption leading-relaxed ${x.level === "error" ? "text-danger" : "text-warn"}`}><span className="font-mono text-code">{x.where}</span>: {x.message}</li>)}
                 </ul>
               </Inset>
             )}
@@ -97,12 +97,12 @@ export default async function StandardDetail({ params }: { params: Promise<{ id:
           )}
           <section className="space-y-2.5">
             <SectionTitle title="Riwayat" />
-            <Inset className="divide-y divide-line text-[13.5px]">
+            <Inset className="divide-y divide-line text-body-sm">
               {d.history.length === 0 && <p className="px-4 py-3 text-ink-soft">Belum ada riwayat.</p>}
               {d.history.map((h, k) => (
                 <div key={k} className="px-4 py-3">
                   <p className="font-medium text-ink">{String(h.from_status ?? "-")} ke {String(h.to_status)}</p>
-                  <p className="text-[12px] text-muted">{String(h.actor)} · {String(h.at)}</p>
+                  <p className="text-caption text-muted">{String(h.actor)} · {String(h.at)}</p>
                   {h.note ? <p className="mt-1 leading-relaxed text-ink-soft">{String(h.note)}</p> : null}
                 </div>
               ))}

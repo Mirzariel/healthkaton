@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-/* Tipografi: satu keluarga (Geist) untuk judul dan teks, Geist Mono hanya untuk nomor/kode. */
-const sans = Geist({ variable: "--font-geist", subsets: ["latin"] });
+/* Tipografi: satu keluarga (Inter, dengan sumbu optical size) untuk judul dan teks; Geist Mono hanya untuk nomor/kode. */
+const sans = Inter({ variable: "--font-inter", subsets: ["latin"], axes: ["opsz"], display: "swap" });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {

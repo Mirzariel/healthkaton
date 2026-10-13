@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FilterField } from "@/components/analytics/blocks";
+import { InfoDot } from "@/components/explain";
 import { AiModeBadge, EmptyState, Forbidden, PageHeader, Pill, SimNotice, TableCard, Toolbar } from "@/components/ui";
 import { listSessions } from "@/lib/ai/admin";
 import { can } from "@/lib/auth/principal";
@@ -21,7 +22,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const filtered = !!(f.status || f.stage || f.ai_mode);
   return (
     <>
-      <PageHeader eyebrow="Standar dan AI" title="Riwayat sesi survei" purpose="Telusuri tiap sesi per giliran. Peserta tampil sebagai pseudonim." />
+      <PageHeader eyebrow="Standar dan AI" title="Riwayat sesi survei" purpose="Telusuri tiap sesi, giliran demi giliran." />
       <Toolbar className="mb-3">
         <form className="contents" role="search" aria-label="Filter sesi">
           <FilterField label="Status" className="w-full sm:w-44">
@@ -33,20 +34,20 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
           <FilterField label="Mode AI terakhir" className="w-full sm:w-48">
             <select name="ai_mode" defaultValue={f.ai_mode ?? ""} className="field"><option value="">Semua</option><option value="simulated">Simulasi</option><option value="live">AI langsung</option><option value="fallback">Fallback</option></select>
           </FilterField>
-          <div className="flex gap-2">
-            <button className="btn btn-primary">Terapkan</button>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <button className="btn btn-primary flex-1 sm:flex-none">Terapkan</button>
             {filtered && <Link href="/console/ai/sessions" className="btn btn-ghost">Atur ulang</Link>}
           </div>
         </form>
       </Toolbar>
-      <p className="mb-2 text-[13px] text-ink-soft">Menampilkan <span className="tabular-nums font-medium text-ink">{rows.length}</span> dari <span className="tabular-nums font-medium text-ink">{total}</span> sesi{filtered ? " yang cocok dengan filter" : ""}.</p>
+      <p className="mb-2 text-caption text-ink-soft">Menampilkan <span className="tabular-nums font-medium text-ink">{rows.length}</span> dari <span className="tabular-nums font-medium text-ink">{total}</span> sesi{filtered ? " yang cocok dengan filter" : ""}.</p>
       <TableCard label="Daftar sesi survei">
         {rows.length === 0 ? <EmptyState title="Tidak ada sesi yang cocok">Ubah atau atur ulang filter untuk melihat sesi lain.</EmptyState> : (
-          <table className="w-full text-left text-[13.5px]">
+          <table className="table-stack w-full text-left text-body-sm">
             <thead>
               <tr>
                 <th className="px-4 py-2.5">Sesi</th>
-                <th className="hidden px-4 py-2.5 md:table-cell">Peserta</th>
+                <th className="hidden px-4 py-2.5 md:table-cell"><span className="inline-flex items-center gap-1">Peserta <InfoDot k="pseudonim" /></span></th>
                 <th className="hidden px-4 py-2.5 sm:table-cell">Tahap</th>
                 <th className="hidden px-4 py-2.5 sm:table-cell">Status</th>
                 <th className="px-4 py-2.5">Mode AI</th>
@@ -59,18 +60,16 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td className="min-w-40 px-4 py-3">
-                    <Link href={`/console/ai/sessions/${r.id}`} className="whitespace-nowrap font-mono text-[12.5px] font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current">{r.id}</Link>
-                    <span className="block text-[12px] text-muted">{r.facility_name}</span>
-                    <span className="block text-[12px] text-muted md:hidden">{r.pseudonym}</span>
-                    <span className="block text-[12px] text-muted sm:hidden">{r.stage_label}{r.uses_draft ? ", draft" : ""}</span>
+                    <Link href={`/console/ai/sessions/${r.id}`} className="whitespace-nowrap font-mono text-code font-semibold text-brand-ink underline decoration-brand/30 underline-offset-3 hover:decoration-current">{r.id}</Link>
+                    <span className="block text-caption text-muted">{r.facility_name}</span>
                   </td>
-                  <td className="hidden px-4 py-3 md:table-cell">{r.pseudonym}{r.respondent_role !== "self" && <Pill className={`ml-1.5 ${TONE_CLASS.info}`}>pendamping</Pill>}</td>
-                  <td className="hidden px-4 py-3 sm:table-cell">{r.stage_label}{r.uses_draft && <Pill className={`ml-1.5 ${TONE_CLASS.warn}`} title="Memakai butir standar berstatus draft">draft</Pill>}</td>
-                  <td className="hidden px-4 py-3 sm:table-cell">{r.status_label}</td>
-                  <td className="px-4 py-3">{r.ai_mode_last ? <AiModeBadge mode={r.ai_mode_last as "live" | "simulated" | "fallback"} /> : <span className="text-muted">—</span>}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{r.turns}</td>
-                  <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.rejected}</td>
-                  <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.corrections}</td>
+                  <td data-label="Peserta" className="hidden px-4 py-3 md:table-cell">{r.pseudonym}{r.respondent_role !== "self" && <Pill className={`ml-1.5 ${TONE_CLASS.info}`}>pendamping</Pill>}</td>
+                  <td data-label="Tahap" className="hidden px-4 py-3 sm:table-cell">{r.stage_label}{r.uses_draft && <Pill className={`ml-1.5 ${TONE_CLASS.warn}`} title="Memakai butir standar berstatus draft">draft</Pill>}</td>
+                  <td data-label="Status" className="hidden px-4 py-3 sm:table-cell">{r.status_label}</td>
+                  <td data-label="Mode AI" className="px-4 py-3">{r.ai_mode_last ? <AiModeBadge mode={r.ai_mode_last as "live" | "simulated" | "fallback"} /> : <span className="text-muted">—</span>}</td>
+                  <td data-label="Giliran" className="px-4 py-3 text-right tabular-nums">{r.turns}</td>
+                  <td data-label="Ditolak validator" className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.rejected}</td>
+                  <td data-label="Koreksi" className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.corrections}</td>
                 </tr>
               ))}
             </tbody>

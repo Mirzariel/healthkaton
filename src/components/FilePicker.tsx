@@ -34,7 +34,7 @@ export function FilePicker({ id, name, accept, onChange }: { id: string; name?: 
           }}
         />
       </label>
-      <span className={`min-w-0 truncate text-[13px] ${fname ? "font-medium text-ink" : "text-muted"}`}>{fname ?? "Belum ada berkas dipilih"}</span>
+      <span className={`min-w-0 truncate text-caption ${fname ? "font-medium text-ink" : "text-muted"}`}>{fname ?? "Belum ada berkas dipilih"}</span>
     </div>
   );
 }

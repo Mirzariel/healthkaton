@@ -19,14 +19,14 @@ import { Tag, Quote } from "./parts";
 /** Bagian ruang kasus yang dapat dilipat. Judul, lencana jumlah/status, lalu isi; id dipakai sebagai tujuan tautan #bagian. */
 export function Section({ id, title, hint, children, open = true, badge }: { id?: string; title: string; hint?: ReactNode; children: ReactNode; open?: boolean; badge?: ReactNode }) {
   return (
-    <details id={id} open={open} className="group scroll-mt-24 rounded-xl border border-line bg-card">
-      <summary className="flex min-h-12 items-center gap-2.5 rounded-xl px-4 py-3 transition-colors hover:bg-subtle/60 group-open:rounded-b-none">
+    <details id={id} open={open} className="group scroll-mt-24 rounded-card bg-card shadow-e1 transition-shadow open:shadow-e2">
+      <summary className="flex min-h-12 flex-wrap items-center gap-2.5 rounded-card px-4 py-3 transition-colors hover:bg-subtle/60 group-open:rounded-b-none">
         <IconChevronRight size={15} className="shrink-0 text-muted transition-transform duration-150 group-open:rotate-90" />
-        <h3 className="min-w-0 flex-1 text-[14px] font-semibold tracking-tight text-ink">{title}</h3>
+        <h3 className="min-w-0 flex-1 text-body font-semibold tracking-tight text-ink">{title}</h3>
         {badge && <span className="flex shrink-0 items-center gap-2">{badge}</span>}
       </summary>
       <div className="space-y-4 border-t border-line px-5 py-4">
-        {hint && <p className="max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">{hint}</p>}
+        {hint && <p className="max-w-3xl text-body-sm leading-relaxed text-ink-soft">{hint}</p>}
         {children}
       </div>
     </details>
@@ -38,17 +38,17 @@ export function Disclose({ label, children, tone = "secondary", quiet = false }:
   if (quiet) {
     return (
       <details className="group/d">
-        <summary className="inline-flex min-h-7 items-center gap-1.5 rounded-md px-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
+        <summary className="inline-flex min-h-7 items-center gap-1.5 rounded-md px-1 text-caption font-medium text-muted transition-colors hover:text-ink">
           <IconChevronRight size={13} className="shrink-0 transition-transform duration-150 group-open/d:rotate-90" />
           {label}
         </summary>
-        <div className="mt-1 rounded-lg border border-line bg-card p-4">{children}</div>
+        <div className="mt-1 rounded-control border border-line bg-card p-4 shadow-e1">{children}</div>
       </details>
     );
   }
   return (
-    <details className="group/d rounded-lg border border-line bg-subtle/50 open:bg-card">
-      <summary className={`flex min-h-9 items-center gap-2 rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors hover:bg-subtle ${tone === "primary" ? "text-brand-ink" : "text-ink"}`}>
+    <details className="group/d rounded-control border border-line bg-subtle/50 open:bg-card open:shadow-e1">
+      <summary className={`flex min-h-11 items-center gap-2 rounded-control px-3 py-1.5 text-body-sm font-medium transition-colors hover:bg-subtle ${tone === "primary" ? "text-brand-ink" : "text-ink"}`}>
         <IconChevronRight size={14} className="shrink-0 text-muted transition-transform duration-150 group-open/d:rotate-90" />
         {label}
       </summary>
@@ -60,21 +60,21 @@ export function Disclose({ label, children, tone = "secondary", quiet = false }:
 const refText = (r: SourceRef) => `${r.label}${r.quote ? ` — "${r.quote}"` : ""}`;
 function Refs({ refs }: { refs: SourceRef[] }) {
   if (!refs.length) return null;
-  return <p className="mt-1 text-xs text-muted">Sumber: {refs.map((r, i) => <span key={`${r.type}:${r.id}:${i}`} className="mr-2"><span className="font-mono">{r.id}</span> {refText(r)}</span>)}</p>;
+  return <p className="mt-1 text-caption text-muted">Sumber: {refs.map((r, i) => <span key={`${r.type}:${r.id}:${i}`} className="mr-2"><span className="font-mono">{r.id}</span> {refText(r)}</span>)}</p>;
 }
 
 /* ---------- Standar ---------- */
 export function StandardBlock({ r }: { r: FindingRoom }) {
   const i = r.pack.indicator;
-  if (!i) return <p className="text-sm text-ink-soft">Temuan ini berasal dari pencocokan episode dan klaim, tanpa butir standar mutu. Dasarnya adalah sinyal di bawah.</p>;
+  if (!i) return <p className="text-body-sm text-ink-soft">Temuan ini berasal dari pencocokan episode dan klaim, tanpa butir standar mutu. Dasarnya adalah sinyal di bawah.</p>;
   return (
-    <div className="space-y-2 text-sm">
+    <div className="space-y-2 text-body-sm">
       <p><span className="font-semibold">{i.title}</span> <span className="text-muted">({i.indicator_id})</span></p>
       <p className="text-ink-soft">{i.standard_name}, versi <span className="font-mono">{i.standard_version}</span>, status <Tag t={i.standard_status === "approved" ? "ok" : "warn"}>{i.standard_status === "approved" ? "Disetujui tim" : i.standard_status === "draft" ? "Draft" : i.standard_status === "reviewed" ? "Ditinjau" : i.standard_status}</Tag></p>
       {i.source ? (
         <p className="text-ink-soft">Sumber: {i.source.title}{i.source.publisher ? ` (${i.source.publisher})` : ""}{i.locator ? `, ${i.locator}` : ""}. Validasi: <Tag t={i.source.validation_status === "validated" ? "ok" : "warn"}>{i.source.validation_status === "validated" ? "Tervalidasi" : "Belum selesai"}</Tag></p>
       ) : <p className="text-ink-soft">Sumber butir belum dicatat.</p>}
-      <p className="text-xs text-muted">Butir yang belum divalidasi pemilik proses tidak boleh dipakai sebagai putusan; hasilnya hanya bahan peninjauan.</p>
+      <p className="text-caption text-muted">Butir yang belum divalidasi hanya bahan peninjauan, bukan dasar putusan.</p>
     </div>
   );
 }
@@ -86,35 +86,35 @@ export function ClaimEvidenceBlock({ r }: { r: FindingRoom }) {
   const stateText = { tersedia: "Catatan tertaut", kurang: "Catatan belum tertaut", bertentangan: "Catatan tidak selaras" } as const;
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-soft">
+      <p className="text-body-sm text-ink-soft">
         Perawatan {pack.episode.kind === "RITL" ? "rawat inap" : "rawat jalan"} {fmtDate(pack.episode.admit_at)} s.d. {fmtDate(pack.episode.discharge_at)}{pack.episode.dx_text ? `, ${pack.episode.dx_text}` : ""}.
         {pack.claim && <> Klaim <span className="font-mono">{pack.claim.claim_no}</span>, kelompok {pack.claim.group_code ?? "-"}, nilai paket {rupiah(pack.claim.amount)} ({pack.claim.status}).</>}
       </p>
-      {pack.related && <p className="text-sm text-ink-soft">Dibandingkan dengan klaim <span className="font-mono">{pack.related.claim_no}</span> pada episode <span className="font-mono">{pack.related.episode_id}</span> ({rupiah(pack.related.amount)}).</p>}
+      {pack.related && <p className="text-body-sm text-ink-soft">Dibandingkan dengan klaim <span className="font-mono">{pack.related.claim_no}</span> pada episode <span className="font-mono">{pack.related.episode_id}</span> ({rupiah(pack.related.amount)}).</p>}
       {pack.services.length > 0 ? (
         <TableCard className="rounded-lg">
-          <table className="w-full min-w-[40rem] text-left text-[13.5px]">
+          <table className="table-stack w-full min-w-[40rem] text-left text-body-sm">
             <caption className="sr-only">Layanan pada rincian dan status catatan pelaksanaannya</caption>
             <thead><tr><th className="px-3 py-2.5">Layanan</th><th className="px-3 py-2.5">Waktu</th><th className="px-3 py-2.5">Pelaksana</th><th className="px-3 py-2.5 text-right">Rincian</th><th className="px-3 py-2.5">Catatan pelaksanaan</th></tr></thead>
             <tbody>
               {pack.services.map((s) => (
                 <tr key={s.id} className={s.flagged ? "bg-warn-soft/40" : ""}>
-                  <td className="px-3 py-2.5"><span className="font-medium">{s.name}</span> <span className="font-mono text-[12px] text-muted">{s.code}</span></td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-ink-soft">{fmtDateTime(s.performed_at)}</td>
-                  <td className="px-3 py-2.5 text-ink-soft">{s.performer}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{rupiah(s.amount)}</td>
-                  <td className="px-3 py-2.5">{s.needs_record ? <><Tag t={stateTone[s.state]}>{stateText[s.state]}</Tag>{s.reasons.length > 0 && <p className="mt-1 text-xs text-ink-soft">{s.reasons.join(" ")}</p>}</> : <span className="text-xs text-muted">Tidak memerlukan lembar tersendiri</span>}</td>
+                  <td className="px-3 py-2.5"><span className="font-medium">{s.name}</span> <span className="font-mono text-code text-muted">{s.code}</span></td>
+                  <td data-label="Waktu" className="whitespace-nowrap px-3 py-2.5 text-ink-soft">{fmtDateTime(s.performed_at)}</td>
+                  <td data-label="Pelaksana" className="px-3 py-2.5 text-ink-soft">{s.performer}</td>
+                  <td data-label="Rincian" className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{rupiah(s.amount)}</td>
+                  <td data-label="Catatan" className="px-3 py-2.5">{s.needs_record ? <><Tag t={stateTone[s.state]}>{stateText[s.state]}</Tag>{s.reasons.length > 0 && <p className="mt-1 text-caption text-ink-soft">{s.reasons.join(" ")}</p>}</> : <span className="text-caption text-muted">Tidak memerlukan lembar tersendiri</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </TableCard>
-      ) : <p className="text-sm text-ink-soft">Tidak ada rincian layanan pada temuan ini.</p>}
+      ) : <p className="text-body-sm text-ink-soft">Tidak ada rincian layanan pada temuan ini.</p>}
       {pack.claim && <SimNotice>Nilai klaim adalah nilai paket terpisah; rincian di atas tidak dijumlahkan atau dibandingkan dengannya.</SimNotice>}
       {pack.signals.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-ink-soft">Dasar sinyal (skor {r.finding.score}, hanya untuk mengurutkan)</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">{pack.signals.map((s) => <li key={s.key}>{s.label}</li>)}</ul>
+          <p className="text-caption font-medium text-ink-soft">Dasar sinyal (skor {r.finding.score}, hanya untuk mengurutkan)</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-body-sm">{pack.signals.map((s) => <li key={s.key}>{s.label}</li>)}</ul>
         </div>
       )}
       {r.finding.limit_text && <Notice tone="info" title="Batas penafsiran">{r.finding.limit_text}</Notice>}
@@ -125,27 +125,27 @@ export function ClaimEvidenceBlock({ r }: { r: FindingRoom }) {
 /* ---------- Pernyataan peserta ---------- */
 export function ParticipantBlock({ r }: { r: FindingRoom }) {
   const { facts, requests } = r.pack;
-  if (!facts.length && !requests.length) return <p className="text-sm text-ink-soft">Belum ada jawaban survei atau laporan peserta yang tertaut pada episode ini. Ketiadaan jawaban bukan bukti apa pun.</p>;
+  if (!facts.length && !requests.length) return <p className="text-body-sm text-ink-soft">Belum ada jawaban survei atau laporan peserta yang tertaut pada episode ini. Ketiadaan jawaban bukan bukti apa pun.</p>;
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted">Identitas peserta tidak ditampilkan di sini. Jawaban "tidak ingat" atau "tidak paham" bernilai nol.</p>
+      <p className="text-caption text-muted">Identitas peserta disembunyikan. Jawaban &quot;tidak ingat&quot; atau &quot;tidak paham&quot; bernilai nol.</p>
       <ul className="space-y-2">
         {facts.map((f) => (
-          <li key={f.id} className={`rounded-lg border px-3 py-2 text-sm ${f.status === "superseded" ? "border-line bg-subtle text-muted" : "border-line bg-card"}`}>
+          <li key={f.id} className={`rounded-lg border px-3 py-2 text-body-sm ${f.status === "superseded" ? "border-line bg-subtle text-muted" : "border-line bg-card"}`}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{SLOT_LABEL[f.slot] ?? f.slot.replaceAll("_", " ")}</span>
               <Tag t={f.meta ? "muted" : f.value === "yes" ? "ok" : f.value === "no" ? "warn" : "info"}>{ANSWER_LABEL[f.value] ?? f.value.replaceAll("_", " ")}</Tag>
-              {f.meta && <span className="text-xs text-muted">bernilai nol</span>}
+              {f.meta && <span className="text-caption text-muted">bernilai nol</span>}
               {f.status === "superseded" && <Tag t="muted">Dikoreksi peserta</Tag>}
               {f.supersedes_id && f.status === "active" && <Tag t="info">Koreksi peserta</Tag>}
-              <span className="text-xs text-muted">{f.respondent_role === "companion" ? "Pendamping" : "Peserta"} · survei {f.stage}</span>
+              <span className="text-caption text-muted">{f.respondent_role === "companion" ? "Pendamping" : "Peserta"} · survei {f.stage}</span>
             </div>
-            {f.quote && <p className="mt-1 text-xs text-ink-soft">"{f.quote}"</p>}
+            {f.quote && <p className="mt-1 text-caption text-ink-soft">"{f.quote}"</p>}
           </li>
         ))}
         {requests.map((q) => (
-          <li key={q.id} className="rounded-lg border border-line bg-card px-3 py-2 text-sm">
-            <div className="flex flex-wrap items-center gap-2"><span className="font-medium">Laporan peserta</span><Tag t="info">{q.category}</Tag><span className="text-xs text-muted">{fmtDate(q.created_at)}</span></div>
+          <li key={q.id} className="rounded-lg border border-line bg-card px-3 py-2 text-body-sm">
+            <div className="flex flex-wrap items-center gap-2"><span className="font-medium">Laporan peserta</span><Tag t="info">{q.category}</Tag><span className="text-caption text-muted">{fmtDate(q.created_at)}</span></div>
             <p className="mt-1">{q.text}</p>
           </li>
         ))}
@@ -170,18 +170,18 @@ export function DocumentsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   return (
     <div className="space-y-4">
       <div>
-        <h4 className="text-sm font-semibold">Dokumen dari faskes</h4>
-        {documents.length === 0 ? <p className="mt-1 text-sm text-ink-soft">Belum ada dokumen yang diunggah faskes untuk temuan ini.</p> : (
+        <h4 className="text-body-sm font-semibold">Dokumen dari faskes</h4>
+        {documents.length === 0 ? <p className="mt-1 text-body-sm text-ink-soft">Belum ada dokumen yang diunggah faskes untuk temuan ini.</p> : (
           <ul className="mt-2 space-y-3">
             {documents.map((d) => (
-              <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
+              <li key={d.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <a href={`/api/documents/${d.id}`} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">{d.name}</a>
-                  <span className="font-mono text-xs text-muted">{d.id}</span>
+                  <span className="font-mono text-code text-muted">{d.id}</span>
                   <Tag t={d.processing_status === "needs_manual_transcription" ? "warn" : d.processing_status === "reviewed" ? "ok" : "info"}>
                     {d.processing_status === "needs_manual_transcription" ? "Perlu transkripsi manual" : d.processing_status === "text_extracted" ? "Teks terbaca" : d.processing_status === "reviewed" ? "Sudah ditelaah" : d.processing_status}
                   </Tag>
-                  <span className="text-xs text-muted">{(d.size / 1024).toFixed(1)} KB · {fmtDateTime(d.created_at)}</span>
+                  <span className="text-caption text-muted">{(d.size / 1024).toFixed(1)} KB · {fmtDateTime(d.created_at)}</span>
                   {linkedDocs.has(d.id) && <Tag t="ok">Tertaut sebagai bukti</Tag>}
                 </div>
                 {d.extraction && <Quote by={`Ekstraksi ${d.extraction.engine === "manual" ? "manual" : "teks"} · status ${d.extraction.status === "proposed" ? "usulan, menunggu telaah" : d.extraction.status === "confirmed" ? "dikonfirmasi" : d.extraction.status === "corrected" ? "dikoreksi" : "ditolak"}`}>{d.extraction.excerpt}{d.extraction.excerpt.length >= 400 ? "…" : ""}</Quote>}
@@ -209,12 +209,12 @@ export function DocumentsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
         )}
       </div>
       <div>
-        <h4 className="text-sm font-semibold">Catatan pelaksanaan pada episode</h4>
-        {records.length === 0 ? <p className="mt-1 text-sm text-ink-soft">Tidak ada catatan pelaksanaan pada episode ini.</p> : (
-          <ul className="mt-2 divide-y divide-line rounded-lg border border-line text-sm">
+        <h4 className="text-body-sm font-semibold">Catatan pelaksanaan pada episode</h4>
+        {records.length === 0 ? <p className="mt-1 text-body-sm text-ink-soft">Tidak ada catatan pelaksanaan pada episode ini.</p> : (
+          <ul className="mt-2 divide-y divide-line rounded-lg border border-line text-body-sm">
             {records.map((rc) => (
               <li key={rc.id} className="px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{rc.type.replaceAll("_", " ")}</span><span className="font-mono text-xs text-muted">{rc.id}</span><span className="text-xs text-muted">{fmtDateTime(rc.recorded_at)} · {rc.performer}</span>{linkedRecs.has(rc.id) && <Tag t="ok">Tertaut sebagai bukti</Tag>}</div>
+                <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{rc.type.replaceAll("_", " ")}</span><span className="font-mono text-code text-muted">{rc.id}</span><span className="text-caption text-muted">{fmtDateTime(rc.recorded_at)} · {rc.performer}</span>{linkedRecs.has(rc.id) && <Tag t="ok">Tertaut sebagai bukti</Tag>}</div>
                 <p className="text-ink-soft">{rc.summary}</p>
                 {editable && !linkedRecs.has(rc.id) && <div className="mt-1.5"><Disclose label="Tautkan sebagai bukti"><CommandForm command="link_evidence" hidden={{ findingId: r.finding.id, evidenceId: rc.id }} submit="Tautkan bukti" fields={linkFields()} /></Disclose></div>}
               </li>
@@ -222,7 +222,6 @@ export function DocumentsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
           </ul>
         )}
       </div>
-      {can(me, "evidence.upload") && can(me, "case.work") && <p className="text-xs text-muted">Dokumen di luar portal dapat diunggah petugas lewat POST /api/casework/upload.</p>}
     </div>
   );
 }
@@ -232,15 +231,15 @@ export function LinksBlock({ r }: { r: FindingRoom }) {
   const nameOf = (l: (typeof links)[number]) => (l.document_id ? documents.find((d) => d.id === l.document_id)?.name : records.find((x) => x.id === l.evidence_id)?.summary) ?? l.document_id ?? l.evidence_id ?? "bukti";
   return (
     <div className="space-y-2">
-      <p className="text-sm text-ink-soft">{readiness.supports} mendukung · {readiness.contradicts} bertentangan · {readiness.neutral} netral. Usulan "Terbukti" membutuhkan sedikitnya satu bukti pendukung dan hak jawab faskes yang terpenuhi.</p>
-      {links.length === 0 ? <p className="text-sm text-ink-soft">Belum ada bukti yang ditautkan.</p> : (
+      <p className="text-body-sm text-ink-soft">{readiness.supports} mendukung · {readiness.contradicts} bertentangan · {readiness.neutral} netral. Usulan "Terbukti" membutuhkan sedikitnya satu bukti pendukung dan hak jawab faskes yang terpenuhi.</p>
+      {links.length === 0 ? <p className="text-body-sm text-ink-soft">Belum ada bukti yang ditautkan.</p> : (
         <ul className="space-y-2">
           {links.map((l) => (
-            <li key={l.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
-              <div className="flex flex-wrap items-center gap-2"><Tag t={DIRECTION_LABEL[l.direction].tone}>{DIRECTION_LABEL[l.direction].label}</Tag><span className="font-mono text-xs text-muted">{l.id}</span><span className="text-xs text-muted">{fmtDateTime(l.linked_at)}</span></div>
+            <li key={l.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
+              <div className="flex flex-wrap items-center gap-2"><Tag t={DIRECTION_LABEL[l.direction].tone}>{DIRECTION_LABEL[l.direction].label}</Tag><span className="font-mono text-code text-muted">{l.id}</span><span className="text-caption text-muted">{fmtDateTime(l.linked_at)}</span></div>
               <p className="mt-1 font-medium">{nameOf(l)}</p>
-              {l.quote && <p className="text-xs text-ink-soft">Kutipan: "{l.quote}"{l.page ? ` (hlm. ${l.page})` : ""}</p>}
-              {l.note && <p className="text-xs text-ink-soft">Catatan petugas: {l.note}</p>}
+              {l.quote && <p className="text-caption text-ink-soft">Kutipan: "{l.quote}"{l.page ? ` (hlm. ${l.page})` : ""}</p>}
+              {l.note && <p className="text-caption text-ink-soft">Catatan petugas: {l.note}</p>}
             </li>
           ))}
         </ul>
@@ -253,10 +252,10 @@ export function SearchBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const { searches } = r.pack;
   return (
     <div className="space-y-3">
-      {searches.length === 0 ? <p className="text-sm text-ink-soft">Belum ada pencarian bukti yang dicatat. "Tidak dapat dibuktikan" baru sah bila pencarian yang tidak menemukan hasil sudah dicatat di sini.</p> : (
-        <ul className="divide-y divide-line rounded-lg border border-line text-sm">
+      {searches.length === 0 ? <p className="text-body-sm text-ink-soft">Belum ada pencarian bukti yang dicatat. "Tidak dapat dibuktikan" baru sah bila pencarian yang tidak menemukan hasil sudah dicatat di sini.</p> : (
+        <ul className="divide-y divide-line rounded-lg border border-line text-body-sm">
           {searches.map((s) => (
-            <li key={s.id} className="px-3 py-2"><div className="flex flex-wrap items-center gap-2"><Tag t={s.result === "found" ? "ok" : s.result === "inconsistent" ? "warn" : "muted"}>{SEARCH_RESULT_LABEL[s.result]}</Tag><span className="font-medium">{s.source}</span><span className="text-xs text-muted">{fmtDateTime(s.at)}</span></div><p className="text-ink-soft">{s.query}{s.found_ref ? ` · rujukan ${s.found_ref}` : ""}</p></li>
+            <li key={s.id} className="px-3 py-2"><div className="flex flex-wrap items-center gap-2"><Tag t={s.result === "found" ? "ok" : s.result === "inconsistent" ? "warn" : "muted"}>{SEARCH_RESULT_LABEL[s.result]}</Tag><span className="font-medium">{s.source}</span><span className="text-caption text-muted">{fmtDateTime(s.at)}</span></div><p className="text-ink-soft">{s.query}{s.found_ref ? ` · rujukan ${s.found_ref}` : ""}</p></li>
           ))}
         </ul>
       )}
@@ -280,10 +279,10 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const canWork = can(me, "case.work");
   return (
     <div className="space-y-3">
-      <Notice tone="neutral" title="AI hanya menyarankan; petugas yang memutuskan"><details className="mt-0.5"><summary className="cursor-pointer text-[12.5px] font-medium text-ink-soft hover:text-ink">Batas peran asisten</summary><ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-[12.5px]">{ASSISTANT_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul></details></Notice>
-      {!s ? <p className="text-sm text-ink-soft">Belum ada ringkasan untuk temuan ini.</p> : (
+      <Notice tone="neutral" title="AI hanya menyarankan; petugas yang memutuskan"><details className="mt-0.5"><summary className="cursor-pointer text-caption font-medium text-ink-soft hover:text-ink">Batas peran asisten</summary><ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-caption">{ASSISTANT_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul></details></Notice>
+      {!s ? <p className="text-body-sm text-ink-soft">Belum ada ringkasan untuk temuan ini.</p> : (
         <>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-2 text-caption text-muted">
             <AiModeBadge mode={s.mode} /><span>Versi {s.version}</span><span>{fmtDateTime(s.created_at)}</span>
             <span>{s.mode === "live" ? `Model ${s.model ?? "-"} (${s.provider})` : s.mode === "fallback" ? "Penyusun aturan menggantikan model karena panggilan gagal atau ditolak validator" : "Penyusun berbasis aturan, bukan inferensi model"}</span>
             {s.status === "reviewed" && <Tag t="ok">Sudah dikoreksi petugas</Tag>}
@@ -294,17 +293,17 @@ export function SummaryBlock({ r, me }: { r: FindingRoom; me: Principal }) {
             if (!blocks.length) return null;
             return (
               <div key={sec}>
-                <h4 className="text-sm font-semibold">{SECTION_TITLES[sec]}</h4>
+                <h4 className="text-body-sm font-semibold">{SECTION_TITLES[sec]}</h4>
                 <ul className="mt-1 space-y-2">
                   {blocks.map((b) => {
                     const corr = [...s.corrections].reverse().find((c) => c.block_id === b.id);
                     return (
-                      <li key={b.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
+                      <li key={b.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
                         {corr ? (
                           <>
                             <p>{corr.text} <Tag t="ok">Dikoreksi petugas</Tag></p>
-                            <p className="mt-1 text-xs text-muted line-through">{b.text}</p>
-                            <p className="text-xs text-muted">Alasan koreksi: {corr.note}</p>
+                            <p className="mt-1 text-caption text-muted line-through">{b.text}</p>
+                            <p className="text-caption text-muted">Alasan koreksi: {corr.note}</p>
                           </>
                         ) : <p>{b.text}</p>}
                         <Refs refs={b.refs} />
@@ -329,13 +328,13 @@ export function SuggestionCard({ s, f, me }: { s: SuggestionRow; f: FindingRoom;
   const st = SUGGESTION_STATE_LABEL[s.state];
   const isOpen = s.state === "proposed";
   return (
-    <li className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
-      <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{k.label}</span><Tag t={st.tone}>{st.label}</Tag><span className="font-mono text-xs text-muted">{s.id}</span></div>
+    <li className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
+      <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{k.label}</span><Tag t={st.tone}>{st.label}</Tag><span className="font-mono text-code text-muted">{s.id}</span></div>
       <p className="mt-1">{s.text}</p>
       <Refs refs={s.refs} />
-      {s.final_text && <p className="mt-1 text-xs text-ink-soft">Teks akhir petugas: {s.final_text}</p>}
-      {s.decision_reason && <p className="text-xs text-ink-soft">Alasan: {s.decision_reason}</p>}
-      {s.decided_by && <p className="text-xs text-muted">Diputuskan {s.decided_by} · {fmtDateTime(s.decided_at)}</p>}
+      {s.final_text && <p className="mt-1 text-caption text-ink-soft">Teks akhir petugas: {s.final_text}</p>}
+      {s.decision_reason && <p className="text-caption text-ink-soft">Alasan: {s.decision_reason}</p>}
+      {s.decided_by && <p className="text-caption text-muted">Diputuskan {s.decided_by} · {fmtDateTime(s.decided_at)}</p>}
       {isOpen && canWork && (
         <div className="mt-2 space-y-2">
           {s.kind === "clarification_request" && !PROOF_FINAL.includes(f.finding.proof_status) && (
@@ -375,8 +374,8 @@ export function SuggestionsBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const done = r.suggestions.filter((s) => s.state !== "proposed");
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-semibold">Saran langkah berikutnya <span className="font-normal text-muted">(menunggu keputusan petugas, tidak dijalankan otomatis)</span></h4>
-      {open.length === 0 ? <p className="text-sm text-ink-soft">Tidak ada saran yang menunggu.</p> : <ul className="space-y-2">{open.map((s) => <SuggestionCard key={s.id} s={s} f={r} me={me} />)}</ul>}
+      <h4 className="text-body-sm font-semibold">Saran langkah berikutnya <span className="font-normal text-muted">(menunggu keputusan petugas, tidak dijalankan otomatis)</span></h4>
+      {open.length === 0 ? <p className="text-body-sm text-ink-soft">Tidak ada saran yang menunggu.</p> : <ul className="space-y-2">{open.map((s) => <SuggestionCard key={s.id} s={s} f={r} me={me} />)}</ul>}
       {done.length > 0 && <Disclose label={`Riwayat keputusan atas saran (${done.length})`}><ul className="space-y-2">{done.map((s) => <SuggestionCard key={s.id} s={s} f={r} me={me} />)}</ul></Disclose>}
     </div>
   );
@@ -388,17 +387,17 @@ export function ClarificationsBlock({ r, me }: { r: FindingRoom; me: Principal }
   const final = PROOF_FINAL.includes(r.finding.proof_status);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-soft">Hak jawab faskes: {r.pack.readiness.replySatisfied ? <Tag t="ok">Terpenuhi</Tag> : <Tag t="warn">Belum terpenuhi</Tag>} <span className="text-xs text-muted">{r.pack.readiness.replyReason}</span></p>
-      {clarifications.length === 0 ? <p className="text-sm text-ink-soft">Belum ada klarifikasi yang dikirim ke faskes.</p> : (
+      <p className="text-body-sm text-ink-soft">Hak jawab faskes: {r.pack.readiness.replySatisfied ? <Tag t="ok">Terpenuhi</Tag> : <Tag t="warn">Belum terpenuhi</Tag>} <span className="text-caption text-muted">{r.pack.readiness.replyReason}</span></p>
+      {clarifications.length === 0 ? <p className="text-body-sm text-ink-soft">Belum ada klarifikasi yang dikirim ke faskes.</p> : (
         <ul className="space-y-3">
           {clarifications.map((c) => {
             const lab = CLARIFICATION_LABEL[c.status];
             return (
-              <li key={c.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
-                <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{c.id}</span><Tag t={lab.tone} title={lab.hint}>{lab.label}</Tag><span className="text-xs text-muted">dikirim {fmtDateTime(c.sent_at)} · tenggat {fmtDateTime(c.due_at)}</span></div>
+              <li key={c.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
+                <div className="flex flex-wrap items-center gap-2"><span className="font-semibold" title="Nomor permintaan klarifikasi">Klarifikasi {c.id}</span><Tag t={lab.tone} title={lab.hint}>{lab.label}</Tag><span className="text-caption text-muted">dikirim {fmtDateTime(c.sent_at)} · tenggat {fmtDateTime(c.due_at)}</span></div>
                 <p className="mt-1 text-ink-soft">{c.issue}</p>
-                {c.requested_docs.length > 0 && <p className="text-xs text-muted">Diminta: {c.requested_docs.join("; ")}</p>}
-                {c.status === "lapsed" && <p className="mt-1 text-xs text-ink-soft">{lab.hint}</p>}
+                {c.requested_docs.length > 0 && <p className="text-caption text-muted">Diminta: {c.requested_docs.join("; ")}</p>}
+                {c.status === "lapsed" && <p className="mt-1 text-caption text-ink-soft">{lab.hint}</p>}
                 {c.messages.filter((m) => m.author_role === "faskes").map((m, i) => <div key={i} className="mt-2"><Quote by={`Jawaban faskes · ${fmtDateTime(m.at)}${m.document_id ? ` · lampiran ${m.document_id}` : ""}`}>{m.text}</Quote></div>)}
                 {c.status === "sent" && can(me, "case.work") && <div className="mt-2"><Disclose label="Tarik permintaan"><CommandForm command="withdraw_clarification" hidden={{ clarificationId: c.id }} submit="Tarik permintaan" tone="secondary" fields={[{ kind: "text", name: "reason", label: "Alasan (wajib)", required: true }]} /></Disclose></div>}
               </li>
@@ -427,25 +426,25 @@ export function ProofBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const history = r.decisions.filter((d) => d.kind === "proof_proposal" || d.kind === "proof_approval" || d.kind === "reopen");
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2"><ProofBadge status={f.proof_status} /><span className="text-sm text-ink-soft">Verifikator mengusulkan, reviewer yang berbeda menyetujui. Tenggat klarifikasi yang lewat tidak membuktikan apa pun.</span></div>
+      <div className="flex flex-wrap items-center gap-2"><ProofBadge status={f.proof_status} /><span className="text-body-sm text-ink-soft">Verifikator mengusulkan, reviewer yang berbeda menyetujui. Tenggat klarifikasi yang lewat tidak membuktikan apa pun.</span></div>
       {!final && (
-        <ul className="grid gap-2 text-[13.5px] sm:grid-cols-3">
-          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Bukti pendukung tertaut</span><br /><strong>{rr.supports}</strong> {rr.supports ? "" : <Tag t="warn">belum ada</Tag>}</li>
-          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Hak jawab faskes</span><br />{rr.replySatisfied ? <Tag t="ok">terpenuhi</Tag> : <Tag t="warn">belum</Tag>}</li>
-          <li className="rounded-lg bg-subtle px-3 py-2"><span className="text-xs text-muted">Pencarian tanpa hasil dicatat</span><br /><strong>{searchesNotFound}</strong> {searchesNotFound ? "" : <span className="text-xs text-muted">(syarat "tidak dapat dibuktikan")</span>}</li>
+        <ul className="grid-auto-sm text-body-sm">
+          <li className="rounded-control bg-subtle px-3.5 py-2.5"><span className="text-caption text-muted">Bukti pendukung tertaut</span><br /><strong>{rr.supports}</strong> {rr.supports ? "" : <Tag t="warn">belum ada</Tag>}</li>
+          <li className="rounded-control bg-subtle px-3.5 py-2.5"><span className="text-caption text-muted">Hak jawab faskes</span><br />{rr.replySatisfied ? <Tag t="ok">terpenuhi</Tag> : <Tag t="warn">belum</Tag>}</li>
+          <li className="rounded-control bg-subtle px-3.5 py-2.5"><span className="text-caption text-muted">Pencarian tanpa hasil dicatat</span><br /><strong>{searchesNotFound}</strong> {searchesNotFound ? "" : <span className="text-caption text-muted">(syarat "tidak dapat dibuktikan")</span>}</li>
         </ul>
       )}
       {f.proof_status === "signal" && can(me, "case.work") && <CommandForm command="start_review" hidden={{ findingId: f.id }} submit="Mulai tinjauan" tone="secondary" />}
       {pend && (
-        <div className="rounded-lg border border-accent/50 bg-warn-soft/50 px-3 py-2 text-sm">
+        <div className="rounded-card bg-warn-soft/60 px-4 py-3 text-body-sm shadow-e2 ring-1 ring-accent/40">
           <p className="font-semibold">Usulan menunggu persetujuan reviewer: {OUTCOME_LABEL[pend.decision ?? ""] ?? pend.decision}</p>
           <p className="text-ink-soft">{pend.reason}</p>
-          <p className="text-xs text-muted">Diusulkan {dec(pend)}</p>
+          <p className="text-caption text-muted">Diusulkan {dec(pend)}</p>
           {can(me, "case.review") ? (
-            pend.actor_id === me.id ? <p className="mt-1 text-xs text-warn">Anda pengusul; persetujuan harus dari reviewer lain.</p> : (
+            pend.actor_id === me.id ? <p className="mt-1 text-caption text-warn">Anda pengusul; persetujuan harus dari reviewer lain.</p> : (
               <div className="mt-2"><Disclose label="Putuskan usulan" tone="primary"><CommandForm command="decide_proof" hidden={{ proposalId: pend.id }} submit="Simpan keputusan" fields={[{ kind: "boolean", name: "approve", label: "Keputusan", yes: "Setujui usulan", no: "Tolak usulan" }, { kind: "textarea", name: "note", label: "Catatan keputusan", rows: 2, hint: "Wajib saat menolak." }]} /></Disclose></div>
             )
-          ) : <p className="mt-1 text-xs text-muted">Hanya reviewer yang dapat memutuskan.</p>}
+          ) : <p className="mt-1 text-caption text-muted">Hanya reviewer yang dapat memutuskan.</p>}
         </div>
       )}
       {!final && !pend && f.proof_status !== "awaiting_clarification" && can(me, "case.work") && f.proof_status !== "signal" && (
@@ -456,13 +455,13 @@ export function ProofBlock({ r, me }: { r: FindingRoom; me: Principal }) {
           ]} />
         </Disclose>
       )}
-      {f.proof_status === "awaiting_clarification" && <p className="text-sm text-ink-soft">Temuan menunggu jawaban faskes. Usulan hasil dapat diajukan setelah faskes menjawab atau tenggat lewat.</p>}
+      {f.proof_status === "awaiting_clarification" && <p className="text-body-sm text-ink-soft">Temuan menunggu jawaban faskes. Usulan hasil dapat diajukan setelah faskes menjawab atau tenggat lewat.</p>}
       {final && can(me, "case.review") && (
         <Disclose label="Buka ulang temuan (ada bukti baru)"><CommandForm command="reopen_finding" hidden={{ findingId: f.id }} submit="Buka ulang" tone="secondary" fields={[{ kind: "textarea", name: "reason", label: "Alasan membuka ulang", rows: 2, required: true }]} /></Disclose>
       )}
       {history.length > 0 && (
         <Disclose label={`Riwayat usulan dan keputusan (${history.length})`}>
-          <ul className="space-y-1.5 text-[13.5px]">{history.map((d) => <li key={d.id} className="rounded-lg bg-subtle px-3 py-1.5"><span className="font-medium">{d.kind === "proof_proposal" ? "Usulan" : d.kind === "reopen" ? "Dibuka ulang" : d.decision === "rejected" ? "Usulan ditolak" : "Disetujui"}</span>{d.decision && d.kind !== "proof_approval" && <> · {OUTCOME_LABEL[d.decision] ?? d.decision}</>}{d.kind === "proof_proposal" && <> · <span className="text-xs text-muted">{d.state === "pending" ? "menunggu" : d.state === "approved" ? "disetujui" : "ditolak"}</span></>}<br /><span className="text-ink-soft">{d.reason}</span><br /><span className="text-xs text-muted">{dec(d)}</span></li>)}</ul>
+          <ul className="space-y-1.5 text-body-sm">{history.map((d) => <li key={d.id} className="rounded-lg bg-subtle px-3 py-1.5"><span className="font-medium">{d.kind === "proof_proposal" ? "Usulan" : d.kind === "reopen" ? "Dibuka ulang" : d.decision === "rejected" ? "Usulan ditolak" : "Disetujui"}</span>{d.decision && d.kind !== "proof_approval" && <> · {OUTCOME_LABEL[d.decision] ?? d.decision}</>}{d.kind === "proof_proposal" && <> · <span className="text-caption text-muted">{d.state === "pending" ? "menunggu" : d.state === "approved" ? "disetujui" : "ditolak"}</span></>}<br /><span className="text-ink-soft">{d.reason}</span><br /><span className="text-caption text-muted">{dec(d)}</span></li>)}</ul>
         </Disclose>
       )}
     </div>
@@ -472,7 +471,7 @@ export function ProofBlock({ r, me }: { r: FindingRoom; me: Principal }) {
 /* ---------- Penyebab dan eskalasi ---------- */
 export function CausesBlock({ r, me }: { r: FindingRoom; me: Principal }) {
   const f = r.finding;
-  if (f.proof_status !== "verified") return <p className="text-sm text-ink-soft">Analisis penyebab baru terbuka setelah temuan berstatus "Terbukti". Hasil penyebab ditetapkan manusia; AI tidak menentukannya.</p>;
+  if (f.proof_status !== "verified") return <p className="text-body-sm text-ink-soft">Analisis penyebab baru terbuka setelah temuan berstatus "Terbukti". Hasil penyebab ditetapkan manusia; AI tidak menentukannya.</p>;
   const hist = r.decisions.filter((d) => d.kind === "escalation" || d.kind === "fraud_approval");
   const pend = r.pendingEscalation;
   return (
@@ -480,7 +479,7 @@ export function CausesBlock({ r, me }: { r: FindingRoom; me: Principal }) {
       <div className="flex flex-wrap items-center gap-2">
         {r.causes.length === 0 ? <Tag t="warn">Belum ditetapkan</Tag> : r.causes.map((c) => <Pill key={c} className={TONE_CLASS[c === "suspected_fraud" ? "danger" : "info"]} title={CAUSE_LABEL[c as keyof typeof CAUSE_LABEL]?.hint}>{CAUSE_LABEL[c as keyof typeof CAUSE_LABEL]?.label ?? c}{c === "suspected_fraud" ? " (label, bukan putusan)" : ""}</Pill>)}
       </div>
-      {f.causes_note && <p className="text-sm text-ink-soft">Catatan analisis: {f.causes_note}</p>}
+      {f.causes_note && <p className="text-body-sm text-ink-soft">Catatan analisis: {f.causes_note}</p>}
       {can(me, "case.cause") && (
         <Disclose label={r.causes.length ? "Ubah analisis penyebab" : "Tetapkan analisis penyebab"} tone="primary">
           <CommandForm command="set_causes" hidden={{ findingId: f.id }} submit="Simpan analisis" fields={[
@@ -489,18 +488,18 @@ export function CausesBlock({ r, me }: { r: FindingRoom; me: Principal }) {
           ]} />
         </Disclose>
       )}
-      <div className="rounded-lg border border-line px-3 py-2">
-        <p className="text-sm font-semibold">Eskalasi dugaan (dua pihak, hasilnya hanya label)</p>
-        <p className="text-xs text-ink-soft">Syarat: terbukti, hak jawab faskes terpenuhi, penyebab alternatif sudah ditimbang. Reviewer mengajukan, auditor (orang dan peran berbeda) menyetujui. Hasilnya label "dugaan", bukan putusan fraud, bukan sanksi.</p>
+      <div className="rounded-control border border-line px-3.5 py-3">
+        <p className="text-body-sm font-semibold">Eskalasi dugaan (dua pihak, hasilnya hanya label)</p>
+        <p className="text-caption text-ink-soft">Syarat: terbukti, hak jawab faskes terpenuhi, penyebab alternatif sudah ditimbang. Reviewer mengajukan, auditor (orang dan peran berbeda) menyetujui. Hasilnya label "dugaan", bukan putusan fraud, bukan sanksi.</p>
         {pend && (
-          <div className="mt-2 rounded-lg bg-warn-soft/50 px-3 py-2 text-sm"><p className="font-medium">Menunggu persetujuan pihak kedua</p><p className="text-ink-soft">{pend.reason}</p><p className="text-xs text-muted">Diajukan {dec(pend)}</p>
+          <div className="mt-2 rounded-lg bg-warn-soft/50 px-3 py-2 text-body-sm"><p className="font-medium">Menunggu persetujuan pihak kedua</p><p className="text-ink-soft">{pend.reason}</p><p className="text-caption text-muted">Diajukan {dec(pend)}</p>
             {me.role === "auditor" && pend.actor_id !== me.id && <div className="mt-2"><Disclose label="Putuskan permintaan eskalasi" tone="primary"><CommandForm command="decide_escalation" hidden={{ requestId: pend.id }} submit="Simpan keputusan" fields={[{ kind: "boolean", name: "approve", label: "Keputusan", yes: "Setujui (label dugaan)", no: "Tolak" }, { kind: "textarea", name: "note", label: "Catatan (wajib)", rows: 2, required: true }]} /></Disclose></div>}
           </div>
         )}
         {!pend && me.role === "reviewer" && !r.causes.includes("suspected_fraud") && r.causes.length > 0 && (
           <div className="mt-2"><Disclose label="Ajukan eskalasi"><CommandForm command="request_escalation" hidden={{ findingId: f.id }} submit="Ajukan eskalasi" tone="secondary" fields={[{ kind: "textarea", name: "reason", label: "Dasar eskalasi (minimal 20 karakter)", rows: 3, required: true }]} /></Disclose></div>
         )}
-        {hist.length > 0 && <ul className="mt-2 space-y-1 text-sm">{hist.map((d) => <li key={d.id} className="text-ink-soft"><span className="font-medium text-ink">{d.kind === "escalation" ? "Permintaan" : d.decision === "approved" ? "Disetujui" : "Ditolak"}</span>: {d.reason} <span className="text-xs text-muted">({dec(d)})</span></li>)}</ul>}
+        {hist.length > 0 && <ul className="mt-2 space-y-1 text-body-sm">{hist.map((d) => <li key={d.id} className="text-ink-soft"><span className="font-medium text-ink">{d.kind === "escalation" ? "Permintaan" : d.decision === "approved" ? "Disetujui" : "Ditolak"}</span>: {d.reason} <span className="text-caption text-muted">({dec(d)})</span></li>)}</ul>}
       </div>
     </div>
   );
@@ -513,9 +512,9 @@ export function ClaimReviewBlock({ r, me }: { r: FindingRoom; me: Principal }) {
     <div className="space-y-3">
       <SimNotice>Ini panel terpisah dari status temuan pelayanan. Pilihan di bawah hanya DICATAT sebagai simulasi oleh petugas: tidak ada pembayaran, koreksi klaim, atau sanksi yang dijalankan ke sistem mana pun, dan AI tidak memilihnya.</SimNotice>
       {r.claimReviews.length > 0 && (
-        <ul className="space-y-2">{r.claimReviews.map((d) => <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]"><div className="flex flex-wrap items-center gap-2"><Tag t="warn">Simulasi</Tag><span className="font-semibold">{CLAIM_REVIEW_LABEL[d.decision as keyof typeof CLAIM_REVIEW_LABEL]?.label ?? d.decision}</span>{d.correction_amount != null && <span>{rupiah(d.correction_amount)}</span>}</div><p className="text-ink-soft">{d.reason}</p><p className="text-xs text-muted">{dec(d)}</p></li>)}</ul>
+        <ul className="space-y-2">{r.claimReviews.map((d) => <li key={d.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm"><div className="flex flex-wrap items-center gap-2"><Tag t="warn">Simulasi</Tag><span className="font-semibold">{CLAIM_REVIEW_LABEL[d.decision as keyof typeof CLAIM_REVIEW_LABEL]?.label ?? d.decision}</span>{d.correction_amount != null && <span>{rupiah(d.correction_amount)}</span>}</div><p className="text-ink-soft">{d.reason}</p><p className="text-caption text-muted">{dec(d)}</p></li>)}</ul>
       )}
-      {!r.canClaimReview ? <p className="text-sm text-ink-soft">Keputusan klaim dapat dicatat setelah pembuktian temuan selesai.</p> : can(me, "claimreview.record") ? (
+      {!r.canClaimReview ? <p className="text-body-sm text-ink-soft">Keputusan klaim dapat dicatat setelah pembuktian temuan selesai.</p> : can(me, "claimreview.record") ? (
         <Disclose label="Catat keputusan klaim (simulasi)">
           <CommandForm command="claim_review" hidden={{ findingId: r.finding.id }} submit="Catat sebagai simulasi" tone="secondary" fields={[
             { kind: "select", name: "option", label: "Pilihan", options: Object.entries(CLAIM_REVIEW_LABEL).map(([value, v]) => ({ value, label: `${v.label}: ${v.hint}` })) },
@@ -530,14 +529,14 @@ export function ClaimReviewBlock({ r, me }: { r: FindingRoom; me: Principal }) {
 
 /* ---------- Bantahan ---------- */
 export function DisputesBlock({ r, me }: { r: FindingRoom; me: Principal }) {
-  if (!r.disputes.length) return <p className="text-sm text-ink-soft">Faskes belum mengajukan bantahan atas temuan ini.</p>;
+  if (!r.disputes.length) return <p className="text-body-sm text-ink-soft">Faskes belum mengajukan bantahan atas temuan ini.</p>;
   return (
     <ul className="space-y-3">
       {r.disputes.map((d) => {
         const l = DISPUTE_LABEL[d.status];
         return (
-          <li key={d.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
-            <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{d.id}</span><Tag t={l.tone}>{l.label}</Tag><span className="text-xs text-muted">{fmtDateTime(d.created_at)}</span></div>
+          <li key={d.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
+            <div className="flex flex-wrap items-center gap-2"><span className="font-semibold" title="Nomor bantahan">Bantahan {d.id}</span><Tag t={l.tone}>{l.label}</Tag><span className="text-caption text-muted">{fmtDateTime(d.created_at)}</span></div>
             <Quote by="Bantahan faskes">{d.text}</Quote>
             {d.response && <p className="mt-1 text-ink-soft">Tanggapan: {d.response}</p>}
             {d.status === "open" && can(me, "dispute.resolve") && (
@@ -559,24 +558,24 @@ export function ActionsBlock({ actions, findings, me, today }: { actions: Action
   const label = { open: "Direncanakan", in_progress: "Dikerjakan", resolved: "Selesai dikerjakan", follow_up_pending: "Menunggu tindak lanjut", closed: "Ditutup" } as const;
   return (
     <div className="space-y-3">
-      {actions.length === 0 && <p className="text-sm text-ink-soft">Belum ada tindakan perbaikan. Tindakan disusun faskes (atau petugas) setelah temuan terbukti. Hasilnya diukur ulang dan dikonfirmasi peserta sebelum ditutup.</p>}
+      {actions.length === 0 && <p className="text-body-sm text-ink-soft">Belum ada tindakan perbaikan. Tindakan disusun faskes (atau petugas) setelah temuan terbukti. Hasilnya diukur ulang dan dikonfirmasi peserta sebelum ditutup.</p>}
       <ul className="space-y-3">
         {actions.map((a) => (
-          <li id={a.id} key={a.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]">
-            <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{a.id}</span><Tag t={a.status === "closed" ? "ok" : a.status === "follow_up_pending" ? "info" : "warn"}>{label[a.status as keyof typeof label]}</Tag><span className="text-xs text-muted">pemilik {a.owner ?? "-"} · target {fmtDate(a.target_date)}{a.status === "open" || a.status === "in_progress" ? (a.target_date && a.target_date.slice(0, 10) < today ? " · lewat target" : "") : ""}</span></div>
+          <li id={a.id} key={a.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm">
+            <div className="flex flex-wrap items-center gap-2"><span className="font-semibold" title="Nomor tindakan">Tindakan {a.id}</span><Tag t={a.status === "closed" ? "ok" : a.status === "follow_up_pending" ? "info" : "warn"}>{label[a.status as keyof typeof label]}</Tag><span className="text-caption text-muted">pemilik {a.owner ?? "-"} · target {fmtDate(a.target_date)}{a.status === "open" || a.status === "in_progress" ? (a.target_date && a.target_date.slice(0, 10) < today ? " · lewat target" : "") : ""}</span></div>
             <p className="mt-1">{a.description}</p>
-            {a.remeasure_plan && <p className="text-xs text-ink-soft">Rencana pengukuran ulang: {a.remeasure_plan}</p>}
-            {a.result && <p className="text-xs text-ink-soft">Hasil dilaporkan: {a.result}</p>}
+            {a.remeasure_plan && <p className="text-caption text-ink-soft">Rencana pengukuran ulang: {a.remeasure_plan}</p>}
+            {a.result && <p className="text-caption text-ink-soft">Hasil dilaporkan: {a.result}</p>}
             {a.followups.length > 0 && (
               <ul className="mt-2 space-y-1.5">
                 {a.followups.map((u) => (
                   <li key={u.id} className="rounded-lg bg-subtle px-3 py-1.5">
-                    <span className="font-medium">{FOLLOWUP_LABEL[u.kind] ?? u.kind}</span> · <Tag t={u.status === "done" ? "ok" : u.status === "skipped" ? "muted" : "warn"}>{u.status === "done" ? (u.outcome === "resolved" ? "Selesai: teratasi" : "Selesai: masih ada kendala") : u.status === "skipped" ? "Dilewati" : "Menunggu"}</Tag> <span className="text-xs text-muted">jatuh tempo {fmtDate(u.due_at)}</span>
-                    {u.note && <p className="text-xs text-ink-soft">{u.note}</p>}
+                    <span className="font-medium">{FOLLOWUP_LABEL[u.kind] ?? u.kind}</span> · <Tag t={u.status === "done" ? "ok" : u.status === "skipped" ? "muted" : "warn"}>{u.status === "done" ? (u.outcome === "resolved" ? "Selesai: teratasi" : "Selesai: masih ada kendala") : u.status === "skipped" ? "Dilewati" : "Menunggu"}</Tag> <span className="text-caption text-muted">jatuh tempo {fmtDate(u.due_at)}</span>
+                    {u.note && <p className="text-caption text-ink-soft">{u.note}</p>}
                     {u.status === "pending" && u.kind !== "participant_confirmation" && can(me, "case.work") && (
                       <div className="mt-1.5"><Disclose label="Selesaikan tindak lanjut"><CommandForm command="complete_followup" hidden={{ followUpId: u.id }} submit="Simpan" fields={[{ kind: "select", name: "outcome", label: "Hasil", options: [{ value: "resolved", label: "Teratasi" }, { value: "still_issue", label: "Masih ada kendala (pengerjaan dibuka kembali)" }] }, { kind: "textarea", name: "note", label: "Catatan hasil", rows: 2 }]} /></Disclose></div>
                     )}
-                    {u.status === "pending" && u.kind === "participant_confirmation" && <p className="mt-1 text-xs text-muted">Menunggu konfirmasi dari peserta di aplikasi peserta. Petugas tidak dapat mengonfirmasi atas nama peserta.</p>}
+                    {u.status === "pending" && u.kind === "participant_confirmation" && <p className="mt-1 text-caption text-muted">Menunggu konfirmasi dari peserta di aplikasi peserta. Petugas tidak dapat mengonfirmasi atas nama peserta.</p>}
                   </li>
                 ))}
               </ul>
@@ -607,12 +606,12 @@ export function ActionsBlock({ actions, findings, me, today }: { actions: Action
 type TimelineItemT = { at: string; kind: string; kindLabel: string; text: string; actor?: string | null };
 function TimelineList({ items }: { items: TimelineItemT[] }) {
   return (
-    <ol className="relative space-y-0 border-l border-line pl-5 text-[13.5px]">
+    <ol className="relative space-y-0 border-l border-line pl-5 text-body-sm">
       {items.map((t, i) => (
         <li key={i} className="relative pb-4 last:pb-0">
-          <span aria-hidden className="absolute -left-[1.56rem] top-1.5 h-2 w-2 rounded-full bg-brand/60 ring-4 ring-card" />
-          <div className="flex flex-wrap items-center gap-2"><span className="text-[12px] tabular-nums text-muted">{fmtDateTime(t.at)}</span><StatusPill tone="muted">{t.kindLabel}</StatusPill></div>
-          <p className="mt-0.5">{t.text}{t.actor ? <span className="text-[12px] text-muted"> · {t.actor.split(":")[1] ?? t.actor}</span> : null}</p>
+          <span aria-hidden className={`absolute -left-[1.56rem] top-1.5 h-2 w-2 rounded-full ring-4 ring-card ${i === items.length - 1 ? "bg-brand" : "bg-brand/45"}`} />
+          <div className="flex flex-wrap items-center gap-2"><span className="text-caption tabular-nums text-muted">{fmtDateTime(t.at)}</span><StatusPill tone="muted">{t.kindLabel}</StatusPill></div>
+          <p className={`mt-0.5 ${i === items.length - 1 ? "font-medium text-ink" : "text-ink-soft"}`}>{t.text}{t.actor ? <span className="text-caption text-muted"> · {t.actor.split(":")[1] ?? t.actor}</span> : null}</p>
         </li>
       ))}
     </ol>
@@ -635,8 +634,8 @@ export function TimelineBlock({ items }: { items: TimelineItemT[] }) {
 export function NotesBlock({ caseId, notes, findings, me }: { caseId: string; notes: { id: number; finding_id: string | null; author_id: string; text: string; at: string }[]; findings: FindingRoom[]; me: Principal }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted">Catatan internal tidak pernah terlihat oleh faskes maupun peserta.</p>
-      {notes.length === 0 ? <p className="text-sm text-ink-soft">Belum ada catatan.</p> : <ul className="space-y-2">{notes.map((n) => <li key={n.id} className="rounded-lg border border-line px-3.5 py-3 text-[13.5px]"><p>{n.text}</p><p className="text-xs text-muted">{n.author_id.split(":")[1]} · {fmtDateTime(n.at)}{n.finding_id ? ` · ${n.finding_id}` : ""}</p></li>)}</ul>}
+      <p className="text-caption text-muted">Catatan internal tidak pernah terlihat oleh faskes maupun peserta.</p>
+      {notes.length === 0 ? <p className="text-body-sm text-ink-soft">Belum ada catatan.</p> : <ul className="space-y-2">{notes.map((n) => <li key={n.id} className="rounded-control border border-line bg-card px-3.5 py-3 text-body-sm"><p>{n.text}</p><p className="text-caption text-muted">{n.author_id.split(":")[1]} · {fmtDateTime(n.at)}{n.finding_id ? ` · ${n.finding_id}` : ""}</p></li>)}</ul>}
       {can(me, "case.work") && (
         <CommandForm command="add_note" hidden={{ caseId }} submit="Tambah catatan" tone="secondary" fields={[
           { kind: "select", name: "findingId", label: "Terkait temuan (opsional)", options: [{ value: "", label: "Seluruh kasus" }, ...findings.map((f) => ({ value: f.finding.id, label: f.finding.id }))] },

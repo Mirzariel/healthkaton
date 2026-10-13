@@ -38,10 +38,10 @@ export default async function PrecheckDetail({ params }: { params: Promise<{ cla
             <CardHeader title={<span id="hasil">Hasil pemeriksaan</span>} hint={`${toReview} dari ${checks.length} perlu ditinjau. Dihitung dari data terkini.`} />
             <ul className="divide-y divide-line">
               {checks.map((c) => (
-                <li key={c.code} className="grid grid-cols-1 gap-x-4 gap-y-1.5 px-5 py-4 text-[14px] sm:grid-cols-[9.5rem_minmax(0,1fr)]">
+                <li key={c.code} className="grid grid-cols-1 gap-x-4 gap-y-1.5 px-5 py-4 text-body-sm sm:grid-cols-[9.5rem_minmax(0,1fr)]">
                   <div className="flex items-start sm:flex-col sm:gap-1.5">
                     <StatusPill tone={SEV[c.severity].tone}>{SEV[c.severity].label}</StatusPill>
-                    <span className="ml-2 text-[12.5px] text-muted sm:ml-0">{c.area}</span>
+                    <span className="ml-2 text-caption text-muted sm:ml-0">{c.area}</span>
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-ink">{c.title}</p>
@@ -56,10 +56,10 @@ export default async function PrecheckDetail({ params }: { params: Promise<{ cla
         <aside className="space-y-4" aria-label="Simpan dan riwayat">
           <Card elevated className="p-5"><SaveRunButton claimId={result.claimId} /></Card>
           <Inset title="Riwayat pemeriksaan" flush>
-            {runs.length === 0 ? <p className="px-5 pb-4 pt-1 text-[13.5px] text-ink-soft">Belum ada riwayat tersimpan.</p> : (
+            {runs.length === 0 ? <p className="px-5 pb-4 pt-1 text-body-sm text-ink-soft">Belum ada riwayat tersimpan.</p> : (
               <ul className="divide-y divide-line/70 pb-1">
                 {runs.map((r) => (
-                  <li key={r.id} className="space-y-1.5 px-5 py-3"><p className="flex items-center justify-between gap-2"><Pill className={TONE_CLASS[OUTCOME_LABEL[r.outcome].tone]}>{OUTCOME_LABEL[r.outcome].label}</Pill><span className="text-[12px] tabular-nums text-muted">{fmtDateTime(r.ran_at)}</span></p><p className="text-[12px] text-muted"><RecordId>{r.id}</RecordId> · {r.ran_by}</p></li>
+                  <li key={r.id} className="space-y-1.5 px-5 py-3"><p className="flex items-center justify-between gap-2"><Pill className={TONE_CLASS[OUTCOME_LABEL[r.outcome].tone]}>{OUTCOME_LABEL[r.outcome].label}</Pill><span className="text-caption tabular-nums text-muted">{fmtDateTime(r.ran_at)}</span></p><p className="text-caption text-muted"><RecordId>{r.id}</RecordId> · {r.ran_by}</p></li>
                 ))}
               </ul>
             )}

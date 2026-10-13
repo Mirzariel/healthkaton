@@ -10,7 +10,7 @@ export interface Segment { key: string; n: number; cls: string; label: string }
 export function StackedBar({ segments, total, height = "h-2.5", className = "" }: { segments: Segment[]; total?: number; height?: string; className?: string }) {
   const sum = total ?? segments.reduce((a, s) => a + s.n, 0);
   const title = segments.map((s) => `${s.label}: ${s.n}`).join("; ");
-  if (sum <= 0) return <span className="text-[12px] text-muted">–</span>;
+  if (sum <= 0) return <span className="text-caption text-muted">–</span>;
   return (
     <div role="img" aria-label={title} title={title} className={`flex ${height} w-full min-w-24 gap-px overflow-hidden rounded-full bg-line ${className}`}>
       {segments.filter((s) => s.n > 0).map((s) => (
@@ -23,7 +23,7 @@ export function StackedBar({ segments, total, height = "h-2.5", className = "" }
 /** Legenda untuk StackedBar. `counts` menampilkan jumlah tepat di samping tiap keterangan. */
 export function Legend({ items, counts = false, label = "Keterangan warna", className = "" }: { items: { cls: string; label: string; n?: number }[]; counts?: boolean; label?: string; className?: string }) {
   return (
-    <ul className={`flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px] text-ink-soft ${className}`} aria-label={label}>
+    <ul className={`flex flex-wrap gap-x-4 gap-y-1.5 text-caption text-ink-soft ${className}`} aria-label={label}>
       {items.map((s) => (
         <li key={s.label} className="flex items-center gap-1.5">
           <span className={`h-2 w-2 shrink-0 rounded-full ${s.cls}`} aria-hidden />
@@ -69,7 +69,7 @@ export function ColumnTrend({ points, caption }: { points: TrendPoint[]; caption
   return (
     <Card className="px-4 pb-3 pt-4"><figure>
       <div className="flex gap-3">
-        <div className="flex h-36 flex-col justify-between text-right text-[11px] tabular-nums text-muted" aria-hidden>
+        <div className="flex h-36 flex-col justify-between text-right text-caption tabular-nums text-muted" aria-hidden>
           <span>{Math.round(top * 100)}%</span>
           <span>0%</span>
         </div>
@@ -88,12 +88,12 @@ export function ColumnTrend({ points, caption }: { points: TrendPoint[]; caption
           </ul>
           <ul className="flex min-w-max gap-2 pt-1.5" aria-hidden>
             {points.map((p) => (
-              <li key={p.key} className="w-10 flex-1 text-center text-[11px] text-muted">{p.label}</li>
+              <li key={p.key} className="w-10 flex-1 text-center text-caption text-muted">{p.label}</li>
             ))}
           </ul>
         </div>
       </div>
-      {caption && <figcaption className="mt-2 text-[12px] text-muted">{caption}</figcaption>}
+      {caption && <figcaption className="mt-2 text-caption text-muted">{caption}</figcaption>}
     </figure></Card>
   );
 }
@@ -103,15 +103,15 @@ export interface BreakdownRow { key: string; label: ReactNode; n: number; cls?: 
 /** Daftar rincian dengan bilah proporsional. Angka dan persentase selalu tertulis. */
 export function Breakdown({ rows, total, empty = "Belum ada.", showPct = true }: { rows: BreakdownRow[]; total?: number; empty?: ReactNode; showPct?: boolean }) {
   const sum = total ?? rows.reduce((a, r) => a + r.n, 0);
-  if (!rows.length) return <p className="px-5 py-4 text-[13.5px] text-ink-soft">{empty}</p>;
+  if (!rows.length) return <p className="px-5 py-4 text-body-sm text-ink-soft">{empty}</p>;
   return (
     <ul className="divide-y divide-line">
       {rows.map((r) => (
-        <li key={r.key} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-5 py-2.5 text-[13.5px]">
+        <li key={r.key} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-5 py-2.5 text-body-sm">
           <span className="min-w-0 text-ink-soft [overflow-wrap:anywhere]">{r.label}</span>
           <span className="font-medium tabular-nums text-ink">
             {r.n}
-            {showPct && sum > 0 && <span className="ml-1.5 text-[12px] font-normal text-muted">{((r.n / sum) * 100).toFixed(0)}%</span>}
+            {showPct && sum > 0 && <span className="ml-1.5 text-caption font-normal text-muted">{((r.n / sum) * 100).toFixed(0)}%</span>}
           </span>
           <span className="col-span-2 h-1 overflow-hidden rounded-full bg-line" aria-hidden>
             <span className={`block h-full rounded-full ${r.cls ?? "bg-ink/40"}`} style={{ width: `${sum > 0 ? (r.n / sum) * 100 : 0}%` }} />

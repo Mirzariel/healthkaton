@@ -20,7 +20,7 @@ export default async function AiLayout({ children }: { children: ReactNode }) {
     <>
       {tabs.length > 0 && (
         <div className="no-print">
-          <p className="mb-1 flex items-center gap-2 text-[12.5px] font-medium text-muted">
+          <p className="mb-1 flex items-center gap-2 text-caption font-medium text-muted">
             <IconCpu size={14} /> Modul AI
           </p>
           <AiTabs tabs={tabs} />

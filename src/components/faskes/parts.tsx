@@ -37,11 +37,11 @@ export interface ClarRow { id: string; finding_title: string; status: string; is
 /** Judul temuan berbentuk "Jenis: pokok". Jenis tampil sebagai label kecil agar daftar tidak berulang-ulang. */
 function SplitTitle({ t }: { t: string }) {
   const i = t.indexOf(": ");
-  if (i < 0) return <p className="text-[14px] font-semibold leading-snug text-ink">{t}</p>;
+  if (i < 0) return <p className="text-body-sm font-semibold leading-snug text-ink">{t}</p>;
   return (
     <>
-      <p className="text-[12px] text-muted">{t.slice(0, i)}</p>
-      <p className="mt-0.5 text-[14px] font-semibold leading-snug text-ink first-letter:uppercase">{t.slice(i + 2)}</p>
+      <p className="text-caption text-muted">{t.slice(0, i)}</p>
+      <p className="mt-0.5 text-body-sm font-semibold leading-snug text-ink first-letter:uppercase">{t.slice(i + 2)}</p>
     </>
   );
 }
@@ -52,20 +52,20 @@ export function ClarificationItem({ c, now, compact = false }: { c: ClarRow; now
   return (
     <Link href={`/faskes/klarifikasi/${c.id}`} className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-subtle/70">
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="font-mono text-[12px] text-muted">{c.id}</span>
+        <div className="flex flex-col-reverse items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
+          <div className="min-w-0">
+            <SplitTitle t={c.finding_title} />
+          </div>
           <StatusPill tone={l.tone} title={l.hint}>{l.label}</StatusPill>
         </div>
-        <div className="mt-1.5">
-          <SplitTitle t={c.finding_title} />
-        </div>
-        {!compact && <p className="mt-0.5 line-clamp-1 max-w-3xl text-[13.5px] text-ink-soft">{c.issue}</p>}
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
+        {!compact && <p className="mt-1 line-clamp-2 max-w-3xl text-body-sm leading-relaxed text-ink-soft sm:line-clamp-1">{c.issue}</p>}
+        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
           <DueLine status={c.status} dueAt={c.due_at} answeredAt={c.answered_at} now={now} />
           <span>
             <IconFile size={13} className="mr-1.5 inline-block -translate-y-px align-middle" />
             {c.doc_count} dokumen
           </span>
+          <span title="Nomor permintaan klarifikasi">No. <span className="font-mono">{c.id}</span></span>
         </p>
       </div>
       <IconChevronRight size={16} className="mt-1 shrink-0 text-line-strong transition-colors group-hover:text-ink-soft" />
@@ -81,9 +81,9 @@ export function FindingItem({ f }: { f: FindingRowData }) {
     <Link href={`/faskes/temuan/${f.id}`} className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-subtle/70">
       <div className="min-w-0 flex-1">
         <SplitTitle t={f.title} />
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-muted">
-          <span className="font-mono text-[12px]">{f.id}</span>
-          {f.claim_no && <span className="font-mono text-[12px]">{f.claim_no}</span>}
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted">
+          <span title="Nomor temuan">Temuan <span className="font-mono">{f.id}</span></span>
+          {f.claim_no && <span title="Nomor klaim (sintetis)">Klaim <span className="font-mono">{f.claim_no}</span></span>}
           <span>Perawatan {fmtDate(f.admit_date)}</span>
           <span>Diperbarui {fmtDate(f.updated_at)}</span>
         </p>
@@ -112,10 +112,10 @@ export function ActionProgress({ status }: { status: string }) {
       </div>
       <ol className="mt-2 hidden grid-cols-5 gap-1 sm:grid">
         {STAGES.map((s, i) => (
-          <li key={s} aria-current={i === idx ? "step" : undefined} className={`text-[12px] leading-snug ${i === idx ? "font-medium text-ink" : "text-muted"}`}>{ACTION_LABEL[s]}</li>
+          <li key={s} aria-current={i === idx ? "step" : undefined} className={`text-caption leading-snug ${i === idx ? "font-medium text-ink" : "text-muted"}`}>{ACTION_LABEL[s]}</li>
         ))}
       </ol>
-      <p className="mt-2 text-[12.5px] text-ink-soft sm:hidden">
+      <p className="mt-2 text-caption text-ink-soft sm:hidden">
         <span className="tabular-nums text-muted">Tahap {idx + 1} dari {STAGES.length}</span>
         <span className="ml-2 font-medium text-ink">{ACTION_LABEL[STAGES[idx]]}</span>
       </p>
@@ -132,10 +132,10 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
     <ol className="relative space-y-4 pl-5 before:absolute before:bottom-1 before:left-[4px] before:top-1.5 before:w-px before:bg-line before:content-['']">
       {items.map((it, i) => (
         <li key={i} className="relative">
-          <span aria-hidden className={`absolute -left-5 top-[7px] h-[9px] w-[9px] rounded-full ring-2 ring-paper ${TL_DOT[it.tone ?? "muted"]}`} />
-          <p className="text-[12.5px] text-muted">{fmtDateTime(it.at)}</p>
-          <p className="text-[13.5px] font-medium leading-snug text-ink">{it.title}</p>
-          {it.note && <p className="mt-0.5 text-[13px] leading-relaxed text-ink-soft">{it.note}</p>}
+          <span aria-hidden className={`absolute -left-5 top-[5px] h-[9px] w-[9px] rounded-full ring-4 ring-subtle ${TL_DOT[it.tone ?? "muted"]} ${i === items.length - 1 ? "scale-125" : ""}`} />
+          <p className={`text-body-sm leading-snug ${i === items.length - 1 ? "font-semibold text-ink" : "font-medium text-ink-soft"}`}>{it.title}</p>
+          <p className="mt-0.5 text-caption tabular-nums text-muted">{fmtDateTime(it.at)}</p>
+          {it.note && <p className="mt-1 text-caption leading-relaxed text-ink-soft">{it.note}</p>}
         </li>
       ))}
     </ol>

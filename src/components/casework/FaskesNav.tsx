@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { BottomBar, SheetLink, type BarItem } from "@/components/BottomBar";
 
 const ITEMS = [
   { href: "/faskes", label: "Ringkasan", exact: true },
@@ -13,6 +14,33 @@ const ITEMS = [
   { href: "/faskes/mutu", label: "Laporan mutu" },
 ];
 
+/** BottomBar portal faskes (HP/tablet): empat menu utama + "Lainnya" berisi Bantahan, Mutu, dan `extra` (mis. pemilih peran). */
+const BAR: BarItem[] = [
+  { href: "/faskes", label: "Ringkasan", icon: "home", exact: true, also: ["/faskes/temuan"] },
+  { href: "/faskes/klarifikasi", label: "Klarifikasi", icon: "message" },
+  { href: "/faskes/bukti", label: "Bukti", icon: "file" },
+  { href: "/faskes/tindakan", label: "Tindakan", icon: "wrench" },
+];
+
+export function FaskesBottomBar({ extra }: { extra?: ReactNode }) {
+  return (
+    <BottomBar
+      items={BAR}
+      label="Menu portal faskes"
+      sheet={
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <SheetLink href="/faskes/bantahan" label="Bantahan" icon="scale" hint="Ajukan keberatan atas temuan" />
+            <SheetLink href="/faskes/mutu" label="Laporan mutu" icon="chart" hint="Ringkasan mutu layanan faskes Anda" />
+          </div>
+          {extra && <div className="border-t border-line pt-4">{extra}</div>}
+        </div>
+      }
+    />
+  );
+}
+
+/** Menu portal faskes untuk desktop (≥ lg): kontrol bersegmen di atas latar gelap. Di HP diganti FaskesBottomBar. */
 export function FaskesNav() {
   const path = usePathname() ?? "";
   const nav = useRef<HTMLElement>(null);
@@ -34,8 +62,8 @@ export function FaskesNav() {
     return () => observer.disconnect();
   }, [path]);
   return (
-    <nav ref={nav} aria-label="Menu portal faskes" className="scroll-x -mx-1">
-      <ul className="flex min-w-max gap-1 px-1">
+    <nav ref={nav} aria-label="Menu portal faskes" className="scroll-x hidden lg:block">
+      <ul className="inline-flex min-w-max gap-0.5 rounded-control bg-white/[0.06] p-1 ring-1 ring-white/10">
         {ITEMS.map((i) => {
           // Halaman detail temuan (/faskes/temuan/…) dibuka dari ringkasan.
           const active = i.exact ? path === i.href || path.startsWith("/faskes/temuan") : path.startsWith(i.href);
@@ -44,8 +72,8 @@ export function FaskesNav() {
               <Link
                 href={i.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative inline-flex h-11 items-center px-2.5 text-[13.5px] font-medium transition-colors after:absolute after:inset-x-2.5 after:bottom-0 after:h-0.5 after:rounded-full ${
-                  active ? "text-white after:bg-mint" : "text-on-night-soft after:bg-transparent hover:text-white"
+                className={`inline-flex h-8 items-center rounded-lg px-3 text-body-sm font-medium transition-[background-color,color,box-shadow] duration-200 ${
+                  active ? "bg-white text-ink shadow-e1" : "text-on-night-soft hover:bg-white/[0.06] hover:text-white"
                 }`}
               >
                 {i.label}

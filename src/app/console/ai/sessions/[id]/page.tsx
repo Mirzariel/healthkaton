@@ -19,8 +19,8 @@ const PROP_TONE: Record<string, keyof typeof TONE_CLASS> = { proposed: "warn", c
 function Meta({ k, children, className = "" }: { k: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`min-w-0 ${className}`}>
-      <dt className="text-[12.5px] text-muted">{k}</dt>
-      <dd className="mt-0.5 text-[14px] text-ink">{children}</dd>
+      <dt className="text-caption text-muted">{k}</dt>
+      <dd className="mt-0.5 text-body-sm text-ink">{children}</dd>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
           <Meta k="Klarifikasi"><span className="tabular-nums">{s.clarif_asked as number} dari anggaran {s.budget_clarif as number}</span></Meta>
           <Meta k="Versi indikator" className="col-span-2 md:col-span-1">
             {t.session.indicator_versions.length ? (
-              <details className="group"><summary className="cursor-pointer text-[13.5px] text-ink-soft hover:text-ink">{t.session.indicator_versions.length} versi</summary>
+              <details className="group"><summary className="cursor-pointer text-body-sm text-ink-soft hover:text-ink">{t.session.indicator_versions.length} versi</summary>
                 <span className="mt-1.5 flex flex-wrap gap-1">{t.session.indicator_versions.map((v: string) => <Pill key={v} className={`max-w-full font-mono ${TONE_CLASS.muted}`}><span className="truncate">{v}</span></Pill>)}</span>
               </details>
             ) : <span className="text-muted">—</span>}
@@ -81,7 +81,7 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
                 <li key={x.id as string}>
                   <Card>
                     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-line px-5 py-3">
-                      <span className="text-[14px] font-semibold text-ink">Giliran {x.seq as number}</span>
+                      <span className="text-body-sm font-semibold text-ink">Giliran {x.seq as number}</span>
                       <Pill className={TONE_CLASS.muted}>{KIND[x.question_kind as string]}</Pill>
                       <Pill className={TONE_CLASS.muted} title="Siapa yang memilih pertanyaan ini">dipilih: {SELECTED_BY[x.selected_by as string]}</Pill>
                       {x.text_source !== "bank" && <Pill className={TONE_CLASS.info}>redaksi: {x.text_source === "ai_phrase" ? "disarankan AI (lolos pemeriksaan)" : "templat"}</Pill>}
@@ -89,31 +89,31 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
                     </div>
                     <div className="space-y-4 px-5 py-4">
                       <div>
-                        <p className="text-[12.5px] text-muted">Pertanyaan <span className="font-mono">({x.question_id as string})</span></p>
-                        <p className="mt-0.5 text-[14.5px] leading-relaxed text-ink">{x.question_text as string}</p>
-                        {x.selection_reason ? <p className="mt-1 text-[13px] text-ink-soft">Alasan pemilihan: {x.selection_reason as string}</p> : null}
+                        <p className="text-caption text-muted">Pertanyaan <span className="font-mono">({x.question_id as string})</span></p>
+                        <p className="mt-0.5 text-body leading-relaxed text-ink">{x.question_text as string}</p>
+                        {x.selection_reason ? <p className="mt-1 text-caption text-ink-soft">Alasan pemilihan: {x.selection_reason as string}</p> : null}
                       </div>
                       <div className="rounded-lg border-l-2 border-line-strong bg-subtle/70 px-3.5 py-2.5">
                         {x.answer_text || x.answer_choice ? (
                           <>
-                            <p className="text-[12.5px] text-muted">Jawaban{x.answer_choice ? " (pilihan)" : " (kalimat bebas)"}</p>
-                            <p className="mt-0.5 text-[14px] text-ink">{(x.answer_text as string) ?? (x.answer_choice as string)}</p>
+                            <p className="text-caption text-muted">Jawaban{x.answer_choice ? " (pilihan)" : " (kalimat bebas)"}</p>
+                            <p className="mt-0.5 text-body-sm text-ink">{(x.answer_text as string) ?? (x.answer_choice as string)}</p>
                           </>
-                        ) : <p className="text-[13.5px] text-ink-soft">Belum dijawab.</p>}
+                        ) : <p className="text-body-sm text-ink-soft">Belum dijawab.</p>}
                       </div>
 
                       {x.processed_by.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-[13px] font-semibold text-ink">Pemrosesan AI</p>
+                          <p className="text-caption font-semibold text-ink">Pemrosesan AI</p>
                           {x.processed_by.map((inv) => (
-                            <div key={inv.id} className="rounded-lg border border-line p-3 text-[13px]">
+                            <div key={inv.id} className="rounded-lg border border-line p-3 text-caption">
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                                 <AiModeBadge mode={inv.mode as "live" | "simulated" | "fallback"} />
-                                <span className="font-mono text-[12px] text-muted">{inv.id}</span>
+                                <span className="font-mono text-code text-muted">{inv.id}</span>
                                 {inv.cost_usd !== null && <span className="tabular-nums text-ink-soft">est. US$ {inv.cost_usd.toFixed(5)}</span>}
                               </div>
                               <p className="mt-1.5 text-ink-soft">
-                                <span className="font-mono text-[12px]">{inv.prompt_version}</span>{inv.model ? <>, model <span className="font-mono text-[12px]">{inv.model}</span></> : null}. <span className="tabular-nums">{inv.latency_ms ?? 0} ms</span>, status {inv.status}{inv.retries ? `, ${inv.retries} ulang` : ""}.
+                                <span className="font-mono text-code">{inv.prompt_version}</span>{inv.model ? <>, model <span className="font-mono text-code">{inv.model}</span></> : null}. <span className="tabular-nums">{inv.latency_ms ?? 0} ms</span>, status {inv.status}{inv.retries ? `, ${inv.retries} ulang` : ""}.
                               </p>
                               {inv.fallback_reason && <p className="mt-1.5 text-warn">Alasan fallback: {inv.fallback_reason}</p>}
                               {inv.validation && (
@@ -123,8 +123,8 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
                                   {inv.validation.phrase_issue ? ` Redaksi saran ditolak: ${inv.validation.phrase_issue}.` : ""}
                                 </p>
                               )}
-                              {inv.validation?.rejected?.map((r, i) => <p key={i} className="mt-1 text-danger">Ditolak: <span className="font-mono text-[12px]">{r.slot} = {r.value}</span> ({r.reason})</p>)}
-                              <a href={`/api/ai/invocations/${inv.id}`} className="link mt-2 inline-block text-[13px]">Lihat permintaan dan respons lengkap (JSON)</a>
+                              {inv.validation?.rejected?.map((r, i) => <p key={i} className="mt-1 text-danger">Ditolak: <span className="font-mono text-code">{r.slot} = {r.value}</span> ({r.reason})</p>)}
+                              <a href={`/api/ai/invocations/${inv.id}`} className="link mt-2 inline-block text-caption">Lihat permintaan dan respons lengkap (JSON)</a>
                             </div>
                           ))}
                         </div>
@@ -132,11 +132,11 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
 
                       {x.proposals.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-[13px] font-semibold text-ink">Saran fakta</p>
-                          <ul className="divide-y divide-line rounded-lg border border-line text-[13px]">
+                          <p className="text-caption font-semibold text-ink">Saran fakta</p>
+                          <ul className="divide-y divide-line rounded-lg border border-line text-caption">
                             {x.proposals.map((pr) => (
                               <li key={pr.id as string} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5">
-                                <span className="break-all font-mono text-[12.5px] text-ink">{pr.slot as string}{pr.subject ? `[${pr.subject as string}]` : ""} = {pr.value as string}</span>
+                                <span className="break-all font-mono text-code text-ink">{pr.slot as string}{pr.subject ? `[${pr.subject as string}]` : ""} = {pr.value as string}</span>
                                 <Pill className={TONE_CLASS[pr.validation === "accepted" ? PROP_TONE[pr.state as string] : "danger"]}>{pr.validation === "accepted" ? PROP_STATE[pr.state as string] : "ditolak validator"}</Pill>
                                 <Pill className={TONE_CLASS.muted}>asal: {pr.origin as string}</Pill>
                                 {pr.quote ? <span className="text-ink-soft">kutipan: “{pr.quote as string}”</span> : null}
@@ -161,12 +161,12 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
             <SectionTitle title="Fakta peserta" hint="Fakta tidak dihapus; koreksi menggantikan." />
             <TableCard label="Fakta peserta">
               {t.facts.length === 0 ? <EmptyState title="Belum ada fakta" /> : (
-                <table className="w-full text-left text-[13px]">
+                <table className="w-full text-left text-caption">
                   <thead><tr><th className="px-4 py-2.5">Slot</th><th className="px-4 py-2.5">Nilai</th><th className="px-4 py-2.5">Asal</th><th className="px-4 py-2.5">Status</th></tr></thead>
                   <tbody>
                     {t.facts.map((f) => (
                       <tr key={f.id as string} className={f.status === "superseded" ? "text-muted line-through" : ""}>
-                        <td className="px-4 py-2.5 font-mono text-[12px]">{f.slot as string}{f.subject ? `[${f.subject as string}]` : ""}</td>
+                        <td className="px-4 py-2.5 font-mono text-code">{f.slot as string}{f.subject ? `[${f.subject as string}]` : ""}</td>
                         <td className="px-4 py-2.5">{f.value as string}</td>
                         <td className="px-4 py-2.5">{f.origin as string}{f.supersedes_id ? ` ← ${f.supersedes_id as string}` : ""}</td>
                         <td className="px-4 py-2.5">{f.status === "active" ? "aktif" : "digantikan"}</td>
@@ -176,17 +176,17 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
                 </table>
               )}
             </TableCard>
-            <p className="text-[12.5px] text-muted"><span className="tabular-nums">{activeFacts.length}</span> fakta aktif dari <span className="tabular-nums">{t.facts.length}</span> tercatat.</p>
+            <p className="text-caption text-muted"><span className="tabular-nums">{activeFacts.length}</span> fakta aktif dari <span className="tabular-nums">{t.facts.length}</span> tercatat.</p>
           </div>
 
           <div className="min-w-0 space-y-4">
             <SectionTitle title="Temuan dan permintaan bantuan" hint="Berstatus sinyal sampai ditinjau petugas." />
             <Card>
-              {t.findings.length === 0 ? <p className="px-5 py-4 text-[13.5px] text-ink-soft">Tidak ada temuan dari sesi ini.</p> : (
+              {t.findings.length === 0 ? <p className="px-5 py-4 text-body-sm text-ink-soft">Tidak ada temuan dari sesi ini.</p> : (
                 <ul className="divide-y divide-line">
                   {t.findings.map((f) => (
-                    <li key={f.id as string} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-[13.5px]">
-                      <span className="font-mono text-[12px] text-muted">{f.id as string}</span>
+                    <li key={f.id as string} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-body-sm">
+                      <span className="font-mono text-code text-muted">{f.id as string}</span>
                       <span className="min-w-0 flex-1">{f.title as string}</span>
                       <Pill className={TONE_CLASS.muted}>{f.proof_status as string}</Pill>
                     </li>
@@ -195,19 +195,19 @@ export default async function TracePage({ params }: { params: Promise<{ id: stri
               )}
               {t.helps.length > 0 && (
                 <ul className="divide-y divide-line border-t border-line">
-                  {t.helps.map((h) => <li key={h.id as string} className="px-5 py-2.5 text-[13.5px]"><strong className="font-semibold">Bantuan {h.status === "open" ? "terbuka" : "ditangani"}</strong>: {h.reason as string}</li>)}
+                  {t.helps.map((h) => <li key={h.id as string} className="px-5 py-2.5 text-body-sm"><strong className="font-semibold">Bantuan {h.status === "open" ? "terbuka" : "ditangani"}</strong>: {h.reason as string}</li>)}
                 </ul>
               )}
             </Card>
 
             <SectionTitle title="Audit sesi" />
             <Card>
-              {t.audit.length === 0 ? <p className="px-5 py-4 text-[13.5px] text-ink-soft">Tidak ada entri.</p> : (
+              {t.audit.length === 0 ? <p className="px-5 py-4 text-body-sm text-ink-soft">Tidak ada entri.</p> : (
                 <ul className="divide-y divide-line">
                   {t.audit.map((a) => (
-                    <li key={a.id as number} className="px-5 py-2.5 text-[13px]">
+                    <li key={a.id as number} className="px-5 py-2.5 text-caption">
                       <p className="flex flex-wrap items-baseline gap-x-2"><span className="font-medium text-ink">{a.action as string}</span><span className="text-muted">{a.actor as string}</span></p>
-                      <p className="font-mono text-[11.5px] text-muted">{(a.ts as string).slice(0, 19)}</p>
+                      <p className="font-mono text-code text-muted">{(a.ts as string).slice(0, 19)}</p>
                     </li>
                   ))}
                 </ul>

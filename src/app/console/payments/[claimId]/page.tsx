@@ -32,7 +32,7 @@ export default async function PaymentDetail({ params }: { params: Promise<{ clai
         <Section className="mt-0">
           <SectionTitle title="Tanggal penting" />
           <Card>
-            <dl className="divide-y divide-line text-[14px]">
+            <dl className="divide-y divide-line text-body-sm">
               {dates.map(([l, v]) => (
                 <div key={l} className="flex items-baseline justify-between gap-4 px-5 py-3"><dt className="text-ink-soft">{l}</dt><dd className="tabular-nums text-ink">{v ? fmtDate(v) : <span className="text-muted">tidak tercatat</span>}</dd></div>
               ))}
@@ -40,7 +40,7 @@ export default async function PaymentDetail({ params }: { params: Promise<{ clai
               {c.days_overdue !== null && c.days_overdue > 0 && <div className="flex items-baseline justify-between gap-4 px-5 py-3"><dt className="text-ink-soft">Hari lewat tenggat (menurut parameter)</dt><dd className="font-semibold tabular-nums text-ink">{c.days_overdue}</dd></div>}
             </dl>
           </Card>
-          {pending && <p className="text-[13.5px]"><Link className="link" href={`/console/pending/${pending.id}`}>Lihat pemilahan pending</Link></p>}
+          {pending && <p className="text-body-sm"><Link className="link" href={`/console/pending/${pending.id}`}>Lihat pemilahan pending</Link></p>}
         </Section>
         <Section className="mt-0">
           <SectionTitle title="Garis waktu status" hint="Urutan peristiwa dari sumber data, apa adanya." />
@@ -50,8 +50,8 @@ export default async function PaymentDetail({ params }: { params: Promise<{ clai
                 {c.events.map((e, i) => (
                   <li key={i} className="relative">
                     <span aria-hidden className="absolute -left-[25px] top-1.5 h-2 w-2 rounded-full bg-ink/60 ring-4 ring-card" />
-                    <p className="text-[14px] text-ink"><span className="font-medium">{PAY_EVENT_LABEL[e.type] ?? e.type}</span>{e.reason ? <span className="text-ink-soft">, {e.reason}</span> : null}{e.amount ? <span className="tabular-nums text-ink-soft">, {rupiah(e.amount)}</span> : null}</p>
-                    <p className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-muted"><span className="tabular-nums">{fmtDateTime(e.at)}</span><SourceBadge source={e.source} /></p>
+                    <p className="text-body-sm text-ink"><span className="font-medium">{PAY_EVENT_LABEL[e.type] ?? e.type}</span>{e.reason ? <span className="text-ink-soft">, {e.reason}</span> : null}{e.amount ? <span className="tabular-nums text-ink-soft">, {rupiah(e.amount)}</span> : null}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-caption text-muted"><span className="tabular-nums">{fmtDateTime(e.at)}</span><SourceBadge source={e.source} /></p>
                   </li>
                 ))}
               </ol>

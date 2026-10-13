@@ -11,9 +11,27 @@ import type { GlossaryKey } from "@/lib/glossary";
 
 type Tone = keyof typeof TONE_CLASS;
 
-/** Kartu: putih, garis rambut, sudut 12px. `elevated` untuk satu elemen terpenting per layar. */
-export function Card({ children, className = "", elevated = false }: { children: ReactNode; className?: string; elevated?: boolean }) {
-  return <div className={`rounded-xl border border-line bg-card ${elevated ? "shadow-depth-2" : "shadow-depth-1"} ${className}`}>{children}</div>;
+/** Kartu: putih, sudut 16px, bayangan e1 dengan sorotan tipis di tepi atas.
+    `elevated` untuk satu elemen terpenting per layar. `interactive` untuk kartu yang seluruhnya bisa diklik. */
+export function Card({ children, className = "", elevated = false, interactive = false }: { children: ReactNode; className?: string; elevated?: boolean; interactive?: boolean }) {
+  return (
+    <div
+      className={`${/(^|\s)bg-/.test(className) ? "" : "surface-hi "}rounded-card bg-card ${elevated ? "shadow-e2" : "shadow-e1"} ${interactive ? "transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:shadow-e2 motion-reduce:hover:translate-y-0" : ""} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Deret ubin angka. Desktop: grid auto-fit. HP (< sm): satu baris geser dengan snap, menembus tepi halaman. */
+export function StatGrid({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={`no-scrollbar -mx-4 grid snap-x snap-mandatory auto-cols-[minmax(9.5rem,1fr)] grid-flow-col gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 pt-0.5 sm:mx-0 sm:snap-none sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-[repeat(auto-fit,minmax(min(100%,12.5rem),1fr))] sm:overflow-visible sm:p-0 [&>*]:snap-start ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 /** Kepala kartu: judul + keterangan + aksi, dipisah garis rambut dari isi. */
@@ -21,8 +39,8 @@ export function CardHeader({ title, hint, children, className = "" }: { title: R
   return (
     <div className={`flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-3.5 ${className}`}>
       <div className="min-w-0">
-        <h3 className="text-[14px] font-semibold tracking-tight text-ink">{title}</h3>
-        {hint && <p className="mt-0.5 text-[13px] text-muted">{hint}</p>}
+        <h3 className="text-body-sm font-semibold tracking-tight text-ink">{title}</h3>
+        {hint && <p className="mt-0.5 text-caption text-muted">{hint}</p>}
       </div>
       {children}
     </div>
@@ -31,7 +49,7 @@ export function CardHeader({ title, hint, children, className = "" }: { title: R
 
 export function Pill({ children, className = "", title }: { children: ReactNode; className?: string; title?: string }) {
   return (
-    <span title={title} className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[12px] font-medium leading-none ${className}`}>
+    <span title={title} className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-caption font-medium leading-none ${className}`}>
       {children}
     </span>
   );
@@ -67,7 +85,7 @@ export function SourceBadge({ source }: { source: keyof typeof DATA_SOURCE_LABEL
 
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav aria-label="Jejak halaman" className="no-print mb-3 text-[13px] text-muted">
+    <nav aria-label="Jejak halaman" className="no-print mb-3 text-caption text-muted">
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((it, i) => (
           <li key={i} className="flex min-w-0 items-center gap-1">
@@ -77,7 +95,7 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
                 {it.label}
               </Link>
             ) : (
-              <span aria-current="page" className="truncate px-0.5 font-mono text-[12px] text-muted">{it.label}</span>
+              <span aria-current="page" className="truncate px-0.5 font-mono text-code text-muted">{it.label}</span>
             )}
           </li>
         ))}
@@ -89,13 +107,13 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
 /** Judul halaman: satu judul, satu kalimat tujuan, aksi utama di kanan (opsional). */
 export function PageHeader({ title, purpose, crumbs, children, eyebrow }: { title: string; purpose?: string; crumbs?: { label: string; href?: string }[]; children?: ReactNode; eyebrow?: string }) {
   return (
-    <header className="mb-7">
+    <header className="mb-7" data-page-title={title}>
       {crumbs && <Breadcrumb items={crumbs} />}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0 max-w-3xl">
+        <div className="min-w-0 max-w-[60ch]">
           {eyebrow && <p className="eyebrow mb-2 text-muted">{eyebrow}</p>}
-          <h1 className="text-[1.5rem] font-semibold leading-tight tracking-tight text-ink md:text-[1.75rem]">{title}</h1>
-          {purpose && <p className="mt-2 text-[14.5px] leading-relaxed text-ink-soft">{purpose}</p>}
+          <h1 className="text-title-1 font-semibold text-ink">{title}</h1>
+          {purpose && <p className="mt-2 text-body text-muted">{purpose}</p>}
         </div>
         {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
       </div>
@@ -107,10 +125,10 @@ export function SectionTitle({ title, hint, info, id, children }: { title: React
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="min-w-0">
-        <h2 id={id} className="flex scroll-mt-24 items-center gap-1.5 text-[15px] font-semibold tracking-tight text-ink">
+        <h2 id={id} className="flex scroll-mt-24 items-center gap-1.5 text-body font-semibold tracking-tight text-ink">
           {title} {info && <InfoDot k={info} className="text-ink-soft" />}
         </h2>
-        {hint && <p className="mt-1 max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">{hint}</p>}
+        {hint && <p className="mt-1 max-w-3xl text-body-sm leading-relaxed text-ink-soft">{hint}</p>}
       </div>
       {children}
     </div>
@@ -132,8 +150,8 @@ export function EmptyState({ title, children, icon }: { title: string; children?
       <span className="grid h-10 w-10 place-items-center rounded-full bg-subtle text-muted ring-1 ring-line" aria-hidden>
         {icon ?? <IconCheckCircle size={18} />}
       </span>
-      <p className="mt-3 text-[15px] font-semibold text-ink">{title}</p>
-      {children && <div className="mt-1 max-w-md text-[13.5px] leading-relaxed text-ink-soft">{children}</div>}
+      <p className="mt-3 text-body font-semibold text-ink">{title}</p>
+      {children && <div className="mt-1 max-w-md text-body-sm leading-relaxed text-ink-soft">{children}</div>}
     </div>
   );
 }
@@ -143,11 +161,11 @@ const STAT_DOT = { default: "bg-line-strong", danger: "bg-danger", ok: "bg-ok", 
 /** Ubin angka (KPI). Selalu sertakan `hint` yang menyebut denominator atau cakupan bila angkanya rasio. */
 export function Stat({ label, value, hint, tone = "default", href, info }: { label: string; value: ReactNode; hint?: string; tone?: "default" | "danger" | "ok" | "warn"; href?: string; info?: GlossaryKey }) {
   return (
-    <div className={`group relative flex flex-col rounded-xl border border-line bg-card px-4 py-3.5 shadow-depth-1 ${href ? "transition-[border-color,box-shadow] duration-150 hover:border-line-strong hover:shadow-depth-2" : ""}`}>
-      <p className="flex items-start gap-2 pr-5 text-[13px] font-medium leading-snug text-ink-soft">
+    <div className={`surface-hi group relative flex min-w-0 flex-col rounded-card bg-card px-4 py-3.5 shadow-e1 ${href ? "transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:shadow-e2 motion-reduce:hover:translate-y-0" : ""}`}>
+      <p className="flex items-start gap-2 pr-5 text-caption font-medium leading-snug text-ink-soft">
         <span className={`mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full ${STAT_DOT[tone]}`} aria-hidden />
         {href ? (
-          <Link href={href} className="after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-brand">
+          <Link href={href} className="after:absolute after:inset-0 after:rounded-card after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-brand">
             {label}
           </Link>
         ) : (
@@ -160,8 +178,8 @@ export function Stat({ label, value, hint, tone = "default", href, info }: { lab
         )}
       </p>
       {href && <IconArrowUpRight size={15} className="absolute right-3.5 top-3.5 text-muted opacity-0 transition-opacity group-hover:opacity-100" />}
-      <p className="mt-2 text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-ink">{value}</p>
-      {hint && <p className="mt-2 text-[12.5px] leading-snug text-muted">{hint}</p>}
+      <p className="mt-2.5 text-title-1 font-semibold leading-none tabular-nums text-ink">{value}</p>
+      {hint && <p className="mt-2 text-caption leading-snug text-muted">{hint}</p>}
     </div>
   );
 }
@@ -189,7 +207,7 @@ const NOTICE: Record<"neutral" | "info" | "warn" | "danger" | "ok", { box: strin
 export function Notice({ tone = "info", title, children, className = "" }: { tone?: keyof typeof NOTICE; title?: ReactNode; children?: ReactNode; className?: string }) {
   const n = NOTICE[tone];
   return (
-    <div className={`flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed ${n.box} ${className}`}>
+    <div className={`flex gap-2.5 rounded-control border px-3.5 py-2.5 text-caption leading-relaxed ${n.box} ${className}`}>
       <span className="mt-[3px] shrink-0">{n.icon}</span>
       <div className="min-w-0">
         {title && <p className="font-semibold text-ink">{title}</p>}
@@ -224,10 +242,10 @@ export function LinkTabs({ items, label }: { items: { href: string; label: React
             <Link
               href={t.href}
               aria-current={t.active ? "page" : undefined}
-              className={`-mb-px inline-flex items-center gap-2 border-b-2 py-2.5 text-[14px] font-medium transition-colors ${t.active ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"}`}
+              className={`-mb-px inline-flex items-center gap-2 border-b-2 py-2.5 text-body-sm font-medium transition-colors ${t.active ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"}`}
             >
               {t.label}
-              {t.count !== undefined && <span className={`rounded-md px-1.5 text-[12px] tabular-nums ${t.active ? "bg-ink text-white" : "bg-subtle text-ink-soft"}`}>{t.count}</span>}
+              {t.count !== undefined && <span className={`rounded-md px-1.5 text-caption tabular-nums ${t.active ? "bg-ink text-white" : "bg-subtle text-ink-soft"}`}>{t.count}</span>}
             </Link>
           </li>
         ))}
@@ -239,10 +257,10 @@ export function LinkTabs({ items, label }: { items: { href: string; label: React
 /** Daftar keterangan dua kolom (label → nilai). */
 export function DescList({ items, className = "" }: { items: { k: ReactNode; v: ReactNode }[]; className?: string }) {
   return (
-    <dl className={`divide-y divide-line text-[14px] ${className}`}>
+    <dl className={`divide-y divide-line text-body-sm ${className}`}>
       {items.map((it, i) => (
         <div key={i} className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
-          <dt className="text-[13px] text-muted">{it.k}</dt>
+          <dt className="text-caption text-muted">{it.k}</dt>
           <dd className="min-w-0 break-words text-ink">{it.v}</dd>
         </div>
       ))}
@@ -261,10 +279,10 @@ export function PageSkeleton() {
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-3 h-7 w-72 max-w-full" />
       <Skeleton className="mt-3 h-4 w-[28rem] max-w-full" />
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[104px] rounded-xl" />)}
+      <div className="mt-8 grid-auto-sm">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[104px] rounded-card" />)}
       </div>
-      <Skeleton className="mt-8 h-72 rounded-xl" />
+      <Skeleton className="mt-8 h-72 rounded-card" />
       <span className="sr-only">Memuat…</span>
     </div>
   );

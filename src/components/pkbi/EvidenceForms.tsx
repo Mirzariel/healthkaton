@@ -28,7 +28,7 @@ export function UploadForm({ episodes, fixedEpisode, surface }: { episodes: Opti
         <Field label="Berkas (PDF, PNG, atau JPEG; maks. 4 MB)" id="up-file"><FilePicker id="up-file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" onChange={setFile} /></Field>
       </div>
       <button type="button" className={primary} disabled={a.busy || !file || !episode} onClick={submit}>{a.busy ? "Mengunggah dan memproses…" : "Unggah"}</button>
-      {status && <p className="text-sm text-ink-soft">{status}</p>}
+      {status && <p className="text-body-sm text-ink-soft">{status}</p>}
       <Msg msg={a.msg} ok={a.ok} />
     </div>
   );
@@ -52,7 +52,7 @@ export function TranscribeEditor({ id, pageCount, surface }: { id: string; pageC
   const [texts, setTexts] = useState<string[]>(() => Array.from({ length: pages }, () => ""));
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-soft">Ketik isi dokumen apa adanya per halaman. Hasil ketikan menjadi <strong>usulan</strong> dan baru dipakai sebagai bukti setelah petugas lain mengonfirmasinya.</p>
+      <p className="text-body-sm text-ink-soft">Ketik isi dokumen apa adanya per halaman. Hasil ketikan menjadi <strong>usulan</strong> dan baru dipakai sebagai bukti setelah petugas lain mengonfirmasinya.</p>
       {texts.map((t, i) => (
         <Field key={i} label={`Halaman ${i + 1}`} id={`tr-${id}-${i}`}><textarea id={`tr-${id}-${i}`} rows={5} value={t} onChange={(e) => setTexts(texts.map((x, j) => (j === i ? e.target.value : x)))} className={input} /></Field>
       ))}
@@ -66,12 +66,12 @@ export function TranscribeEditor({ id, pageCount, surface }: { id: string; pageC
 export function ExtractionReview({ id, text, canReview, blockedReason }: { id: string; text: string; canReview: boolean; blockedReason?: string }) {
   const a = useAct();
   const [edited, setEdited] = useState(text);
-  if (!canReview) return <p className="text-xs text-muted">Hanya verifikator, reviewer, atau admin yang dapat memutuskan usulan ini.</p>;
-  if (blockedReason) return <p className="text-xs text-warn">{blockedReason}</p>;
+  if (!canReview) return <p className="text-caption text-muted">Hanya verifikator, reviewer, atau admin yang dapat memutuskan usulan ini.</p>;
+  if (blockedReason) return <p className="text-caption text-warn">{blockedReason}</p>;
   const send = (action: string) => a.act(() => api(`/api/evidence/extractions/${id}`, "PATCH", { action, correctedText: action === "correct" ? edited : undefined }), { success: "Keputusan tercatat." });
   return (
     <div className="space-y-2">
-      <textarea aria-label="Teks yang dikoreksi" rows={4} value={edited} onChange={(e) => setEdited(e.target.value)} className={`${input} font-mono text-xs`} />
+      <textarea aria-label="Teks yang dikoreksi" rows={4} value={edited} onChange={(e) => setEdited(e.target.value)} className={`${input} font-mono text-code`} />
       <div className="flex flex-wrap gap-2">
         <button type="button" className={primary} disabled={a.busy} onClick={() => send("confirm")}>Konfirmasi apa adanya</button>
         <button type="button" className={btn} disabled={a.busy || edited.trim() === text.trim()} onClick={() => send("correct")}>Simpan koreksi</button>

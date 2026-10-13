@@ -1,16 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Brand } from "@/components/Brand";
-import type { HistoryView, HomeView } from "@/lib/survey/participant";
+import type { FollowUpView, HistoryView, HomeView, ReportView } from "@/lib/survey/participant";
 import type { SessionView } from "@/lib/survey/service";
 import { fmtDate } from "@/lib/dates";
 import { Chat } from "./Chat";
 import { ApiError, api, newKey } from "./api";
-import { IconAlert, IconArrowLeft, IconCheck, IconChevron, IconClipboard, IconClock, IconFlag, IconHelp, IconHistory, IconHome, IconHospital, IconInfo, IconShield } from "./icons";
-import { BTN, Callout, Spinner, Tag } from "./kit";
+import { IconAlert, IconArrowRight, IconCheck, IconChevronRight, IconClipboard, IconClock, IconFlag, IconHelp, IconHistory, IconHome, IconHospital, IconInfo, IconList, IconShield } from "./icons";
+import { AutoPager, BTN, Callout, Done, EASE, overflows, RowLink, ScreenTitle, Sheet, Spinner, Tag, TextSizeCtx, useFitLevel } from "./kit";
 
-type Screen = { name: "home" } | { name: "chat"; view: SessionView } | { name: "report" } | { name: "history" } | { name: "help"; session_id?: string };
+/* Aplikasi peserta. Rancangan untuk peserta lanjut usia: satu tugas per layar, huruf besar, tanpa gulir.
+   Daftar yang tidak muat dipecah menjadi halaman ("Sebelumnya / Berikutnya"), bukan digulir. */
+
+type Screen =
+  | { name: "home" }
+  | { name: "todo" }
+  | { name: "episodes" }
+  | { name: "chat"; view: SessionView }
+  | { name: "report" }
+  | { name: "reports" }
+  | { name: "history" }
+  | { name: "help"; session_id?: string };
+type Tab = "home" | "report" | "history" | "help";
+const TAB_OF: Record<Screen["name"], Tab | null> = { home: "home", todo: "home", episodes: "home", chat: null, report: "report", reports: "report", history: "history", help: "help" };
 
 const SIZES = ["17px", "19px", "22px"] as const;
 const STORE = "sehati-m-size";
@@ -26,12 +40,27 @@ const CATEGORIES = [
 const firstName = (n: string | null, fallback: string) => (n ?? fallback).split(" ")[0];
 const clean = (s: string) => s.replace(/\s*\(simulasi\)\s*$/i, "");
 
+type StartBody = { invitation_id?: string; episode_id?: string; stage?: string };
+type Todo =
+  | { kind: "followup"; key: string; f: FollowUpView }
+  | { kind: "task"; key: string; tag: string; title: string; detail: string; meta?: string; cta: string; act: () => void };
+
 export function ParticipantApp({ initial }: { initial: HomeView }) {
   const [home, setHome] = useState(initial);
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const [size, setSize] = useState(1);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const reduce = useReducedMotion();
+  const [zoom, setZoom] = useState(1);
+
+  /* Desktop (>= lg): bingkai ponsel selalu 390x844 logis, diperkecil utuh agar pas tinggi layar (tanpa gulir di dalam). */
+  useEffect(() => {
+    const fit = () => setZoom(window.innerWidth >= 1024 ? Math.min(1, (window.innerHeight - 64) / (844 + 20)) : 1);
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
 
   useEffect(() => {
     try {
@@ -59,7 +88,7 @@ export function ParticipantApp({ initial }: { initial: HomeView }) {
     }
   }, []);
 
-  async function start(body: { invitation_id?: string; episode_id?: string; stage?: string }, tag: string) {
+  async function start(body: StartBody, tag: string) {
     setErr(null);
     setBusy(tag);
     try {
@@ -67,6 +96,7 @@ export function ParticipantApp({ initial }: { initial: HomeView }) {
       setScreen({ name: "chat", view });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Gagal memulai.");
+      setScreen({ name: "home" });
       await refresh();
     } finally {
       setBusy(null);
@@ -79,6 +109,7 @@ export function ParticipantApp({ initial }: { initial: HomeView }) {
       setScreen({ name: "chat", view: await api<SessionView>(`/api/survey/sessions/${id}`) });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Gagal membuka sesi.");
+      setScreen({ name: "home" });
     } finally {
       setBusy(null);
     }
@@ -89,49 +120,108 @@ export function ParticipantApp({ initial }: { initial: HomeView }) {
     await refresh();
   };
 
+  /* Daftar hal yang menunggu, urut dari yang paling mendesak. */
+  const todos: Todo[] = [
+    ...home.follow_ups.map((f): Todo => ({ kind: "followup", key: `fu-${f.id}`, f })),
+    ...[...home.invitations]
+      .sort((a, b) => (a.mode === b.mode ? 0 : a.mode === "directed" ? -1 : 1))
+      .map((i): Todo => ({
+        kind: "task", key: `inv-${i.id}`, tag: i.id, title: i.label, detail: i.detail,
+        meta: `${clean(i.facility_name)}${i.expires_at ? ` · sampai ${fmtDate(i.expires_at)}` : ""}`,
+        cta: i.session_id ? "Lanjutkan" : "Mulai",
+        act: () => (i.session_id ? void resume(i.session_id, i.id) : void start({ invitation_id: i.id }, i.id)),
+      })),
+    ...home.episodes.flatMap((e) =>
+      e.surveys
+        .filter((s) => s.state === "active" && s.session_id && !home.invitations.some((i) => i.session_id === s.session_id))
+        .map((s): Todo => ({ kind: "task", key: `ss-${s.session_id}`, tag: s.session_id!, title: `Lanjutkan survei`, detail: "Jawaban Anda sebelumnya sudah tersimpan. Tinggal beberapa pertanyaan.", meta: `${clean(e.facility_name)} · ${e.kind}`, cta: "Lanjutkan", act: () => void resume(s.session_id!, s.session_id!) })),
+    ),
+    ...home.episodes.flatMap((e) =>
+      e.surveys
+        .filter((s) => s.state === "available")
+        .map((s): Todo => ({ kind: "task", key: `av-${e.id}-${s.stage}`, tag: `${e.id}-${s.stage}`, title: "Ceritakan pengalaman Anda", detail: `Beberapa pertanyaan singkat tentang ${e.kind.toLowerCase()} Anda.`, meta: `${clean(e.facility_name)} · ${fmtDate(e.admit_at)}`, cta: "Mulai", act: () => void start({ episode_id: e.id, stage: s.stage }, `${e.id}-${s.stage}`) })),
+    ),
+  ];
+
+  const tab = TAB_OF[screen.name];
   const inChat = screen.name === "chat";
+  const screenKey = screen.name === "chat" ? `chat-${screen.view.session.id}` : screen.name;
+  const go = (t: Tab) => (t === "home" ? void exit() : setScreen(t === "help" ? { name: "help" } : t === "report" ? { name: "report" } : { name: "history" }));
 
   return (
-    <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-paper md:col-start-2 md:row-span-2 md:row-start-1 md:h-[min(820px,calc(100dvh-3rem))] md:w-[400px] md:shrink-0 md:self-start md:sticky md:top-6 lg:static lg:row-span-1 lg:self-center md:rounded-[2.5rem] md:border-[9px] md:border-ink md:shadow-depth-3" style={{ fontSize: SIZES[size] }} aria-label="Aplikasi peserta SEHATI">
-      {screen.name === "home" && (
-        <header className="shrink-0 border-b border-line bg-card px-4 pb-3 pt-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <Brand size={20} />
-            <div role="group" aria-label="Ukuran huruf" className="flex shrink-0 gap-0.5 rounded-xl bg-subtle p-0.5 ring-1 ring-line">
-              {["A", "A+", "A++"].map((l, i) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-label={["Huruf normal", "Huruf besar", "Huruf sangat besar"][i]}
-                  aria-pressed={size === i}
-                  onClick={() => pick(i)}
-                  className={`grid h-11 min-w-11 place-items-center rounded-[10px] px-1.5 font-semibold transition-colors ${size === i ? "bg-card text-brand-ink shadow-depth-1 ring-1 ring-line" : "text-ink-soft hover:bg-card/70"}`}
-                  style={{ fontSize: [14, 16, 19][i] }}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <h1 className="mt-2.5 truncate text-[1.45em] font-semibold leading-tight tracking-tight">Halo, {home.respondent_role === "companion" && home.companion_name ? firstName(home.companion_name, "") : firstName(home.participant.name, home.participant.pseudonym)}</h1>
-          {home.respondent_role === "companion" && (
-            <p className="mt-1.5"><Tag tone="brand">Masuk sebagai pendamping</Tag></p>
-          )}
-        </header>
-      )}
-      <div key={screen.name} className={`min-h-0 flex-1 animate-fade-in ${inChat ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`}>
-        {screen.name === "home" && <Home home={home} err={err} busy={busy} onStart={start} onResume={resume} onChanged={refresh} onGo={setScreen} />}
-        {screen.name === "chat" && <Chat initial={screen.view} onExit={exit} onHelp={(id) => setScreen({ name: "help", session_id: id })} onChanged={() => void 0} />}
-        {screen.name === "report" && <ReportForm home={home} onDone={exit} onBack={exit} />}
-        {screen.name === "history" && <History onBack={exit} />}
-        {screen.name === "help" && <HelpForm sessionId={screen.session_id} onDone={exit} onBack={exit} />}
+    <main
+      className="relative flex h-dvh w-full flex-col overflow-hidden bg-paper lg:col-start-2 lg:row-start-1 lg:box-content lg:h-[844px] lg:w-[390px] lg:self-center lg:justify-self-center lg:rounded-[3rem] lg:border-[10px] lg:border-ink lg:shadow-e4"
+      style={{ fontSize: SIZES[size], zoom: zoom === 1 ? undefined : zoom }}
+      aria-label="Aplikasi peserta SEHATI"
+    >
+      <TextSizeCtx.Provider value={size}>
+      {!inChat && <AppHeader size={size} onPick={pick} />}
+      <div className="relative min-h-0 flex-1">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={screenKey}
+            className={`absolute inset-0 flex flex-col ${inChat ? "" : "overflow-y-auto overscroll-contain px-4 pb-4 pt-1 no-scrollbar"}`}
+            initial={{ opacity: 0, x: reduce ? 0 : 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: reduce ? 0 : -20 }}
+            transition={{ duration: 0.2, ease: EASE }}
+            data-screen={screen.name}
+          >
+            {screen.name === "home" && <Home home={home} todos={todos} err={err} busy={busy} onGo={setScreen} onChanged={refresh} />}
+            {screen.name === "todo" && <TodoList todos={todos} busy={busy} onBack={() => setScreen({ name: "home" })} onChanged={refresh} />}
+            {screen.name === "episodes" && <Episodes home={home} busy={busy} onBack={() => setScreen({ name: "home" })} onStart={start} onResume={resume} />}
+            {screen.name === "chat" && (
+              <Chat initial={screen.view} onExit={exit} onHelp={(id) => setScreen({ name: "help", session_id: id })} onChanged={() => void 0} />
+            )}
+            {screen.name === "report" && <ReportFlow home={home} onDone={exit} onReports={() => setScreen({ name: "reports" })} />}
+            {screen.name === "reports" && <Reports reports={home.reports} onBack={() => setScreen({ name: "report" })} />}
+            {screen.name === "history" && <History />}
+            {screen.name === "help" && (
+              <HelpForm
+                sessionId={screen.session_id}
+                openHelps={home.open_helps}
+                onDone={() => (screen.session_id ? void resume(screen.session_id, screen.session_id) : void exit())}
+                onBack={screen.session_id ? () => void resume(screen.session_id!, screen.session_id!) : undefined}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-      {!inChat && <TabBar active={screen.name} openHelps={home.open_helps} onSelect={(n) => (n === "home" ? void exit() : setScreen(n === "report" ? { name: "report" } : n === "history" ? { name: "history" } : { name: "help" }))} />}
+      {!inChat && tab && <TabBar active={tab} openHelps={home.open_helps} onSelect={go} />}
+      </TextSizeCtx.Provider>
     </main>
   );
 }
 
-function TabBar({ active, openHelps, onSelect }: { active: Screen["name"]; openHelps: number; onSelect: (n: "home" | "report" | "history" | "help") => void }) {
+/* ---------- Kerangka ---------- */
+
+function AppHeader({ size, onPick }: { size: number; onPick: (n: number) => void }) {
+  return (
+    <header className="flex shrink-0 items-center justify-between gap-3 px-4 pb-1 pt-[max(0.625rem,env(safe-area-inset-top))]">
+      <Brand size={20} />
+      <div className="flex items-center gap-2">
+        <span className="text-body-sm font-medium text-ink-soft" aria-hidden>Huruf</span>
+        <div role="group" aria-label="Ukuran huruf" className="flex shrink-0 gap-0.5 rounded-2xl bg-card p-1 shadow-e1">
+          {["A", "A+", "A++"].map((l, i) => (
+            <button
+              key={l}
+              type="button"
+              aria-label={["Huruf normal", "Huruf besar", "Huruf sangat besar"][i]}
+              aria-pressed={size === i}
+              onClick={() => onPick(i)}
+              className={`grid h-11 min-w-11 place-items-center rounded-xl px-1.5 font-semibold transition-colors duration-150 ${size === i ? "bg-brand text-white" : "text-ink hover:bg-subtle"}`}
+              style={{ fontSize: [14, 16, 19][i] }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function TabBar({ active, openHelps, onSelect }: { active: Tab; openHelps: number; onSelect: (n: Tab) => void }) {
   const tabs = [
     { id: "home", label: "Beranda", Icon: IconHome },
     { id: "report", label: "Lapor", Icon: IconFlag },
@@ -139,8 +229,8 @@ function TabBar({ active, openHelps, onSelect }: { active: Screen["name"]; openH
     { id: "help", label: "Bantuan", Icon: IconHelp },
   ] as const;
   return (
-    <nav aria-label="Menu aplikasi" className="shrink-0 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]">
-      <ul className="grid grid-cols-4">
+    <nav aria-label="Menu aplikasi" className="shrink-0 border-t border-line bg-card px-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] pt-1.5">
+      <ul className="grid grid-cols-4 gap-1">
         {tabs.map(({ id, label, Icon }) => {
           const on = active === id;
           return (
@@ -149,11 +239,11 @@ function TabBar({ active, openHelps, onSelect }: { active: Screen["name"]; openH
                 type="button"
                 onClick={() => onSelect(id)}
                 aria-current={on ? "page" : undefined}
-                className={`relative flex min-h-14 w-full flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.72em] font-semibold transition-colors ${on ? "text-brand-ink" : "text-muted hover:text-ink"}`}
+                className={`relative flex min-h-16 w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[0.8em] font-semibold leading-none transition-colors duration-150 ${on ? "bg-brand-soft text-brand-ink" : "text-ink-soft hover:bg-subtle hover:text-ink"}`}
               >
-                <span className={`relative grid h-7 w-12 place-items-center rounded-full transition-colors ${on ? "bg-brand-soft" : ""}`}>
-                  <Icon size={21} />
-                  {id === "help" && openHelps > 0 && <span className="absolute right-2 top-0.5 size-2 rounded-full bg-accent ring-2 ring-card" aria-hidden />}
+                <span className="relative">
+                  <Icon size={24} />
+                  {id === "help" && openHelps > 0 && <span className="absolute -right-1 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-card" aria-hidden />}
                 </span>
                 {label}
                 {id === "help" && openHelps > 0 && <span className="sr-only">, {openHelps} permintaan menunggu</span>}
@@ -166,283 +256,363 @@ function TabBar({ active, openHelps, onSelect }: { active: Screen["name"]; openH
   );
 }
 
-function SectionHead({ children, hint }: { children: ReactNode; hint?: string }) {
-  return (
-    <div className="px-1">
-      <h2 className="text-[0.95em] font-semibold text-ink">{children}</h2>
-      {hint && <p className="text-[0.8em] text-muted">{hint}</p>}
-    </div>
-  );
-}
+/* ---------- Beranda ---------- */
 
-function Home({ home, err, busy, onStart, onResume, onGo, onChanged }: { home: HomeView; err: string | null; busy: string | null; onStart: (b: { invitation_id?: string; episode_id?: string; stage?: string }, tag: string) => void; onResume: (id: string, tag: string) => void; onGo: (s: Screen) => void; onChanged: () => void }) {
-  const [fuErr, setFuErr] = useState<string | null>(null);
-  const [fuBusy, setFuBusy] = useState<string | null>(null);
-  async function confirmFu(id: string, outcome: "resolved" | "still_issue") {
-    setFuErr(null);
-    setFuBusy(`${id}:${outcome}`);
-    try {
-      await api(`/api/survey/followups/${id}`, "POST", { outcome });
-      onChanged();
-    } catch (e) {
-      setFuErr(e instanceof Error ? e.message : "Gagal mengirim.");
-    } finally {
-      setFuBusy(null);
-    }
-  }
-  const activeSessions = home.episodes.flatMap((e) => e.surveys.filter((s) => s.state === "active" && s.session_id).map((s) => ({ e, s })));
-  const hasAvailable = home.episodes.some((e) => e.surveys.some((s) => s.state === "available"));
-  const allClear = home.invitations.length === 0 && activeSessions.length === 0 && home.follow_ups.length === 0 && !hasAvailable;
+function Home({ home, todos, err, busy, onGo, onChanged }: { home: HomeView; todos: Todo[]; err: string | null; busy: string | null; onGo: (s: Screen) => void; onChanged: () => void }) {
+  const name = home.respondent_role === "companion" && home.companion_name ? firstName(home.companion_name, "") : firstName(home.participant.name, home.participant.pseudonym);
+  const first = todos[0];
+  const root = useRef<HTMLDivElement>(null);
+  /* 0 lapang - 1 kartu ringkas - 2 tautan berdampingan - 3 rincian di balik "Detail" */
+  const level = useFitLevel(root, 3, overflows, [todos.map((t) => t.key), err, home.episodes.length, home.reports.length]);
+  const rows = [
+    todos.length > 1 && { key: "todo", icon: <IconList size={22} />, label: "Hal lain menunggu", count: todos.length - 1, go: () => onGo({ name: "todo" }) },
+    { key: "ep", icon: <IconHospital size={22} />, label: "Perawatan saya", count: home.episodes.length, go: () => onGo({ name: "episodes" }) },
+    todos.length <= 1 && home.reports.length > 0 && { key: "rep", icon: <IconFlag size={22} />, label: "Laporan saya", count: home.reports.length, go: () => onGo({ name: "reports" }) },
+  ].filter(Boolean) as { key: string; icon: ReactNode; label: string; count: number; go: () => void }[];
   return (
-    <div className="space-y-6 px-4 pb-6 pt-4">
-      <div className="space-y-2.5">
-        {home.respondent_role === "companion" && (
-          <Callout tone="brand" icon={<IconInfo size={18} className="text-brand" />}>
-            Untuk peserta {home.participant.pseudonym}. Jawaban Anda dicatat sebagai jawaban pendamping.
-          </Callout>
-        )}
-        {err && (
-          <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>
-            {err}
-          </Callout>
-        )}
+    <div ref={root} className={`flex min-h-0 flex-1 flex-col ${level >= 1 ? "gap-3" : "gap-4"}`}>
+      <div className="shrink-0 pt-1">
+        <h1 className={`truncate font-semibold leading-tight tracking-tight ${level >= 1 ? "text-[1.5em]" : "text-[1.75em]"}`}>Halo, {name}</h1>
+        <p className="mt-0.5 flex flex-wrap items-center gap-2 leading-snug text-ink-soft">
+          {todos.length === 0 ? "Tidak ada yang menunggu Anda." : todos.length === 1 ? "Ada satu hal untuk Anda." : `Ada ${todos.length} hal untuk Anda.`}
+          {home.respondent_role === "companion" && <Tag tone="brand">Sebagai pendamping {home.participant.pseudonym}</Tag>}
+        </p>
       </div>
-
-      {(home.invitations.length > 0 || activeSessions.length > 0) && (
-        <section className="space-y-2.5" aria-label="Perlu dijawab">
-          <SectionHead>Menunggu Anda</SectionHead>
-          {activeSessions.map(({ e, s }) => (
-            <article key={s.session_id} className="rounded-2xl border border-brand/35 bg-card p-4 shadow-depth-1">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand" aria-hidden><IconClipboard size={22} /></span>
-                <div className="min-w-0">
-                  <h3 className="font-semibold leading-snug">Lanjutkan {s.label.toLowerCase()}</h3>
-                  <p className="mt-0.5 text-[0.85em] leading-snug text-ink-soft">{clean(e.facility_name)}, {e.kind}. Jawaban tersimpan.</p>
-                </div>
-              </div>
-              <button type="button" className={`${BTN.primary} mt-3.5`} disabled={busy !== null} onClick={() => onResume(s.session_id!, s.session_id!)}>
-                {busy === s.session_id && <Spinner />} Lanjutkan
-              </button>
-            </article>
-          ))}
-          {home.invitations.map((i) => (
-            <article key={i.id} className="rounded-2xl border border-brand/35 bg-card p-4 shadow-depth-1">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand" aria-hidden><IconClipboard size={22} /></span>
-                <div className="min-w-0">
-                  <h3 className="font-semibold leading-snug">{i.label}</h3>
-                  <p className="mt-0.5 text-[0.85em] leading-snug text-ink-soft">{clean(i.facility_name)}. {i.detail}</p>
-                  {i.expires_at && <p className="mt-1.5 flex items-center gap-1.5 text-[0.78em] text-muted"><IconClock size={14} /> Berlaku sampai {fmtDate(i.expires_at)}</p>}
-                </div>
-              </div>
-              <button type="button" className={`${BTN.primary} mt-3.5`} disabled={busy !== null} onClick={() => (i.session_id ? onResume(i.session_id, i.id) : onStart({ invitation_id: i.id }, i.id))}>
-                {busy === i.id && <Spinner />} {busy === i.id ? "Membuka…" : i.session_id ? "Lanjutkan" : "Mulai"}
-              </button>
-            </article>
-          ))}
-        </section>
-      )}
-
-      {home.follow_ups.length > 0 && (
-        <section className="space-y-2.5" aria-label="Tindak lanjut">
-          <SectionHead>Mohon dikonfirmasi</SectionHead>
-          {home.follow_ups.map((f) => (
-            <article key={f.id} className="rounded-2xl border border-line bg-card p-4">
-              <h3 className="font-semibold leading-snug">{clean(f.facility_name)} menyatakan sudah memperbaiki:</h3>
-              <p className="mt-1.5 rounded-lg bg-subtle px-3 py-2 text-[0.9em] leading-snug text-ink-soft">{f.description}</p>
-              <p className="mt-3 font-medium">Apakah kendala Anda sudah selesai?</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button type="button" className={BTN.primary} disabled={fuBusy !== null} onClick={() => confirmFu(f.id, "resolved")}>
-                  {fuBusy === `${f.id}:resolved` ? <Spinner /> : <IconCheck size={18} />} Sudah selesai
-                </button>
-                <button type="button" className={BTN.secondary} disabled={fuBusy !== null} onClick={() => confirmFu(f.id, "still_issue")}>
-                  {fuBusy === `${f.id}:still_issue` && <Spinner />} Belum selesai
-                </button>
-              </div>
-            </article>
-          ))}
-          {fuErr && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{fuErr}</Callout>}
-        </section>
-      )}
-
-      {allClear && (
-        <div className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ok-soft text-ok" aria-hidden><IconCheck size={20} /></span>
-          <p className="text-[0.9em] leading-snug text-ink-soft"><span className="font-semibold text-ink">Tidak ada yang menunggu Anda.</span> Pertanyaan baru akan muncul di sini.</p>
-        </div>
-      )}
-
-      <section className="space-y-2.5" aria-label="Perawatan saya">
-        <SectionHead>Perawatan saya</SectionHead>
-        {home.episodes.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-line-strong bg-card px-4 py-6 text-center">
-            <span className="mx-auto grid size-10 place-items-center rounded-full bg-subtle text-muted" aria-hidden><IconHospital size={20} /></span>
-            <p className="mt-2 font-semibold">Belum ada riwayat perawatan</p>
-            <p className="mt-0.5 text-[0.85em] text-ink-soft">Perawatan Anda akan muncul di sini.</p>
-          </div>
-        )}
-        {home.episodes.map((e) => (
-          <article key={e.id} className="rounded-2xl border border-line bg-card p-4">
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-subtle text-ink-soft" aria-hidden><IconHospital size={22} /></span>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold leading-snug">{clean(e.facility_name)}</h3>
-                <p className="mt-0.5 flex flex-wrap gap-x-2 text-[0.82em] leading-snug text-ink-soft"><span>{e.kind}</span><span className="min-w-0">{fmtDate(e.admit_at)}{e.kind === "Rawat inap" ? ` – ${fmtDate(e.discharge_at)}` : ""}</span></p>
-              </div>
-            </div>
-            <div className="mt-3 space-y-2">
-              {e.surveys.map((s) =>
-                s.state === "done" ? (
-                  <p key={s.stage} className="flex items-start gap-2 rounded-xl bg-ok-soft px-3 py-2.5 text-[0.88em] font-medium leading-snug text-ok">
-                    <IconCheck size={17} className="mt-0.5 shrink-0" />
-                    <span>{s.label}: sudah diisi{s.status && <span className="block text-[0.9em] font-normal text-ok/90">Status: {s.status.toLowerCase()}</span>}</span>
-                  </p>
-                ) : s.state === "active" ? (
-                  <button key={s.stage} type="button" className={BTN.outline} disabled={busy !== null} onClick={() => onResume(s.session_id!, s.session_id!)}>
-                    {busy === s.session_id && <Spinner />} Lanjutkan {s.label.toLowerCase()}
-                  </button>
-                ) : (
-                  <button key={s.stage} type="button" className={BTN.outline} disabled={busy !== null} onClick={() => onStart({ episode_id: e.id, stage: s.stage }, `${e.id}-${s.stage}`)}>
-                    {busy === `${e.id}-${s.stage}` && <Spinner />} {busy === `${e.id}-${s.stage}` ? "Membuka…" : `Mulai survei: ${s.label.toLowerCase()}`}
-                  </button>
-                ),
-              )}
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="space-y-2.5" aria-label="Laporan saya">
-        <SectionHead>Laporan saya</SectionHead>
-        {home.reports.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-line-strong bg-card px-4 py-5 text-[0.9em] leading-snug text-ink-soft">
-            Belum ada laporan. Anda dapat melapor kapan saja.
-          </div>
-        ) : (
-          <ul className="space-y-2.5">
-            {home.reports.map((r) => (
-              <li key={r.id} className="rounded-2xl border border-line bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold leading-snug">{r.category_label}</h3>
-                  <Tag tone="info">{r.status_label}</Tag>
-                </div>
-                <p className="mt-1 text-[0.88em] leading-snug text-ink-soft">{r.text}</p>
-                <p className="mt-2 border-t border-line pt-2 text-[0.78em] leading-snug text-muted">{r.hint}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-        <button type="button" className={BTN.secondary} onClick={() => onGo({ name: "report" })}>
-          <IconFlag size={18} /> Lapor kendala
-        </button>
-      </section>
-
-      {home.open_helps > 0 && (
-        <Callout tone="warn" icon={<IconInfo size={18} className="text-warn" />}>
-          {home.open_helps} permintaan bantuan Anda menunggu petugas.
+      {err && (
+        <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>
+          {err}
         </Callout>
       )}
-
-      <p className="flex gap-2 px-1 text-[0.78em] leading-snug text-muted">
-        <IconShield size={17} className="mt-px shrink-0" />
-        <span>Prototipe dengan data sintetis. Bukan aplikasi resmi BPJS Kesehatan dan tidak terhubung ke sistem mereka.</span>
-      </p>
+      {first ? (
+        <TodoCard todo={first} busy={busy} onChanged={onChanged} hero level={level} />
+      ) : (
+        <article className="shrink-0 rounded-[1.75rem] bg-card p-5 text-center shadow-e2">
+          <span className="mx-auto grid size-14 place-items-center rounded-full bg-ok-soft text-ok" aria-hidden><IconCheck size={28} /></span>
+          <h2 className="mt-3 text-[1.3em] font-semibold leading-tight">Semua beres</h2>
+          <p className="mt-1.5 leading-snug text-ink-soft">Pertanyaan baru akan muncul di sini.</p>
+        </article>
+      )}
+      {level >= 2 && rows.length > 1 ? (
+        <div className="mt-auto grid shrink-0 grid-cols-2 gap-2.5">
+          {rows.map((r) => (
+            <button key={r.key} type="button" onClick={r.go} className="flex min-h-16 flex-col items-start justify-center rounded-2xl bg-card px-3.5 py-2.5 text-left shadow-e1 transition-colors hover:bg-brand-tint">
+              <span className="font-semibold leading-tight">{r.label}</span>
+              <span className="mt-1 inline-flex items-center gap-1 text-[0.92em] font-semibold text-brand-ink">{r.count} <IconChevronRight size={18} /></span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-auto grid shrink-0 gap-2.5">
+          {rows.map((r) => <RowLink key={r.key} icon={r.icon} label={r.label} count={r.count} onClick={r.go} />)}
+        </div>
+      )}
     </div>
   );
 }
 
-function Frame({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
+function TodoCard({ todo, busy, onChanged, hero = false, level = 0 }: { todo: Todo; busy: string | null; onChanged: () => void; hero?: boolean; level?: number }) {
+  const [detail, setDetail] = useState(false);
+  const roomy = hero && level === 0;
+  const pad = roomy ? "rounded-[1.75rem] p-5 shadow-e2" : hero ? "rounded-[1.75rem] p-4 shadow-e2" : "rounded-3xl p-4 shadow-e1";
+  if (todo.kind === "followup") return <FollowUpCard f={todo.f} onChanged={onChanged} className={pad} hero={hero} />;
+  const on = busy === todo.tag;
+  const hide = hero && level >= 3;
   return (
-    <div>
-      <div className="sticky top-0 z-10 flex items-center gap-1 border-b border-line bg-card px-2 py-2">
-        <button type="button" onClick={onBack} aria-label="Kembali ke beranda" className="grid min-h-11 min-w-11 place-items-center rounded-xl text-ink hover:bg-subtle">
-          <IconArrowLeft size={22} />
+    <article className={`shrink-0 bg-card ring-1 ring-brand/15 ${pad}`}>
+      <Tag tone="brand"><IconClipboard size={15} /> Menunggu Anda</Tag>
+      <h2 className={`mt-2.5 font-semibold leading-tight tracking-tight ${roomy ? "text-[1.4em]" : hero ? "text-[1.25em]" : "text-[1.15em]"}`}>{todo.title}</h2>
+      {hide ? (
+        <button type="button" onClick={() => setDetail(true)} aria-haspopup="dialog" className="-ml-2 mt-1 inline-flex min-h-12 items-center gap-1.5 rounded-xl px-2 font-semibold text-brand-ink hover:bg-brand-tint">
+          <IconInfo size={20} /> Detail
         </button>
-        <h1 className="text-[1.1em] font-semibold">{title}</h1>
-      </div>
-      <div className="space-y-4 px-4 pb-6 pt-4">{children}</div>
-    </div>
+      ) : (
+        <p className="mt-1.5 leading-snug text-ink-soft">{todo.detail}</p>
+      )}
+      {todo.meta && !(hero && level >= 1) && (
+        <p className="mt-2 flex items-start gap-1.5 text-[0.9em] leading-snug text-ink-soft">
+          <IconClock size={17} className="mt-0.5 shrink-0" /> {todo.meta}
+        </p>
+      )}
+      <button type="button" className={`${BTN.primary} ${roomy ? "mt-5 min-h-16 text-[1.1em]" : "mt-3.5"}`} disabled={busy !== null} onClick={todo.act}>
+        {on ? <Spinner /> : null} {on ? "Membuka…" : todo.cta} {!on && <IconArrowRight size={20} />}
+      </button>
+      <AnimatePresence>
+        {detail && (
+          <Sheet key="d" title={todo.title} titleId={`d-${todo.key}`} onClose={() => setDetail(false)}>
+            <p className="leading-snug text-ink">{todo.detail}</p>
+            {todo.meta && <p className="flex items-start gap-1.5 leading-snug text-ink-soft"><IconClock size={18} className="mt-0.5 shrink-0" /> {todo.meta}</p>}
+            <button type="button" onClick={() => { setDetail(false); todo.act(); }} className={BTN.primary}>{todo.cta} <IconArrowRight size={20} /></button>
+          </Sheet>
+        )}
+      </AnimatePresence>
+    </article>
   );
 }
 
-function SuccessBlock({ title, children }: { title: string; children: ReactNode }) {
+function FollowUpCard({ f, onChanged, className, hero }: { f: FollowUpView; onChanged: () => void; className: string; hero: boolean }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function confirm(outcome: "resolved" | "still_issue") {
+    setErr(null);
+    setBusy(outcome);
+    try {
+      await api(`/api/survey/followups/${f.id}`, "POST", { outcome });
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Gagal mengirim.");
+    } finally {
+      setBusy(null);
+    }
+  }
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-card p-5 text-center">
-      <span className="mx-auto grid size-14 place-items-center rounded-full bg-ok-soft text-ok" aria-hidden><IconCheck size={28} /></span>
-      <h2 className="text-[1.25em] font-semibold leading-snug">{title}</h2>
-      <div className="space-y-2 text-left text-[0.92em] leading-relaxed text-ink-soft">{children}</div>
+    <article className={`shrink-0 bg-card ring-1 ring-brand/15 ${className}`}>
+      <Tag tone="warn">Mohon dikonfirmasi</Tag>
+      <h2 className={`mt-3 font-semibold leading-tight ${hero ? "text-[1.25em]" : "text-[1.1em]"}`}>{clean(f.facility_name)} sudah memperbaiki:</h2>
+      <p className="mt-2 line-clamp-3 rounded-xl bg-subtle px-3 py-2 leading-snug text-ink">{f.description}</p>
+      <p className="mt-3 font-semibold">Apakah kendala Anda sudah selesai?</p>
+      <div className="mt-2.5 grid gap-2">
+        <button type="button" className={BTN.primary} disabled={busy !== null} onClick={() => confirm("resolved")}>
+          {busy === "resolved" ? <Spinner /> : <IconCheck size={20} />} Sudah selesai
+        </button>
+        <button type="button" className={BTN.secondary} disabled={busy !== null} onClick={() => confirm("still_issue")}>
+          {busy === "still_issue" && <Spinner />} Belum selesai
+        </button>
+      </div>
+      {err && <Callout tone="danger" role="alert" className="mt-2" icon={<IconAlert size={18} />}>{err}</Callout>}
+    </article>
+  );
+}
+
+function TodoList({ todos, busy, onBack, onChanged }: { todos: Todo[]; busy: string | null; onBack: () => void; onChanged: () => void }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <ScreenTitle title="Menunggu Anda" onBack={onBack} backLabel="Beranda" />
+      {todos.length === 0 ? (
+        <p className="leading-snug text-ink-soft">Tidak ada yang menunggu Anda.</p>
+      ) : (
+        <AutoPager label="Halaman daftar tugas" items={todos.map((t) => ({ key: t.key, node: <TodoCard todo={t} busy={busy} onChanged={onChanged} /> }))} />
+      )}
     </div>
   );
 }
 
-function ReportForm({ home, onDone, onBack }: { home: HomeView; onDone: () => void; onBack: () => void }) {
-  const [episode, setEpisode] = useState(home.episodes[0]?.id ?? "");
+function Episodes({ home, busy, onBack, onStart, onResume }: { home: HomeView; busy: string | null; onBack: () => void; onStart: (b: StartBody, tag: string) => void; onResume: (id: string, tag: string) => void }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <ScreenTitle title="Perawatan saya" onBack={onBack} backLabel="Beranda" />
+      {home.episodes.length === 0 ? (
+        <Empty icon={<IconHospital size={24} />} title="Belum ada perawatan" text="Perawatan Anda akan muncul di sini." />
+      ) : (
+        <AutoPager
+          label="Halaman perawatan"
+          items={home.episodes.map((e) => ({
+            key: e.id,
+            node: (
+              <article className="rounded-3xl bg-card p-4 shadow-e1">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-subtle text-ink-soft" aria-hidden><IconHospital size={22} /></span>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold leading-snug">{clean(e.facility_name)}</h2>
+                    <p className="text-[0.92em] leading-snug text-ink-soft">{e.kind} · {fmtDate(e.admit_at)}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {e.surveys.map((s) =>
+                    s.state === "done" ? (
+                      <p key={s.stage} className="flex min-h-12 items-center gap-2 rounded-2xl bg-ok-soft px-3.5 py-2 font-semibold leading-snug text-ok">
+                        <IconCheck size={20} className="shrink-0" /> Survei sudah diisi
+                      </p>
+                    ) : s.state === "active" ? (
+                      <button key={s.stage} type="button" className={BTN.outline} disabled={busy !== null} onClick={() => onResume(s.session_id!, s.session_id!)}>
+                        {busy === s.session_id && <Spinner />} Lanjutkan survei
+                      </button>
+                    ) : (
+                      <button key={s.stage} type="button" className={BTN.outline} disabled={busy !== null} onClick={() => onStart({ episode_id: e.id, stage: s.stage }, `${e.id}-${s.stage}`)}>
+                        {busy === `${e.id}-${s.stage}` ? <Spinner /> : null} {busy === `${e.id}-${s.stage}` ? "Membuka…" : "Mulai survei"}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </article>
+            ),
+          }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+      <span className="grid size-14 place-items-center rounded-full bg-card text-ink-soft shadow-e1" aria-hidden>{icon}</span>
+      <p className="mt-1 text-[1.1em] font-semibold">{title}</p>
+      <p className="leading-snug text-ink-soft">{text}</p>
+    </div>
+  );
+}
+
+/* ---------- Lapor ---------- */
+
+function Choice({ label, sub, on, onClick }: { label: string; sub?: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={`flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left leading-snug transition-colors duration-150 active:scale-[0.99] ${on ? "border-brand bg-brand-soft text-brand-ink shadow-e1" : "border-line-strong bg-card text-ink shadow-e1 hover:border-brand hover:bg-brand-tint"}`}
+    >
+      <span aria-hidden className={`grid size-7 shrink-0 place-items-center rounded-full border-2 ${on ? "border-brand bg-brand text-white" : "border-line-strong"}`}>{on && <IconCheck size={16} />}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[1.05em] font-semibold">{label}</span>
+        {sub && <span className="block text-[0.9em] text-ink-soft">{sub}</span>}
+      </span>
+      <IconChevronRight size={22} className="shrink-0 text-ink-soft" />
+    </button>
+  );
+}
+
+function ReportFlow({ home, onDone, onReports }: { home: HomeView; onDone: () => void; onReports: () => void }) {
+  const [step, setStep] = useState<"start" | "episode" | "category" | "text" | "sent">("start");
+  const [episode, setEpisode] = useState(home.episodes.length === 1 ? home.episodes[0].id : "");
   const [category, setCategory] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [key] = useState(newKey);
-  const [sent, setSent] = useState(false);
+  const one = home.episodes.length === 1;
+  const total = one ? 2 : 3;
+  const n = (s: "episode" | "category" | "text") => (s === "episode" ? 1 : s === "category" ? (one ? 1 : 2) : total);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
     try {
       await api("/api/survey/reports", "POST", { episode_id: episode, category, text, idem_key: key });
-      setSent(true);
+      setStep("sent");
     } catch (x) {
       setErr(x instanceof ApiError ? x.message : "Gagal mengirim.");
     } finally {
       setBusy(false);
     }
   }
-  if (sent)
+  const kicker = (s: "episode" | "category" | "text") => <span className="text-[0.95em] font-semibold text-ink-soft">Langkah {n(s)} dari {total}</span>;
+
+  if (step === "sent")
     return (
-      <Frame title="Laporan terkirim" onBack={onDone}>
-        <SuccessBlock title="Terima kasih, laporan Anda sudah masuk">
-          <p>Laporan diteruskan ke petugas untuk diperiksa. Ini informasi awal, bukan tuduhan.</p>
-          <p>Pantau statusnya di beranda, pada “Laporan saya”.</p>
-        </SuccessBlock>
-        <button type="button" onClick={onDone} className={BTN.primary}>Kembali ke beranda</button>
-      </Frame>
+      <Done title="Laporan terkirim" action={<button type="button" onClick={onDone} className={BTN.primary}>Kembali ke beranda</button>}>
+        <p>Terima kasih. Petugas akan memeriksanya.</p>
+        <p>Pantau statusnya di “Laporan saya”.</p>
+      </Done>
     );
+
+  if (step === "start")
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <ScreenTitle title="Lapor kendala" />
+        <article className="shrink-0 rounded-[1.75rem] bg-card p-5 shadow-e2">
+          <span className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand" aria-hidden><IconFlag size={28} /></span>
+          <h2 className="mt-4 text-[1.3em] font-semibold leading-tight">Ada kendala dengan layanan?</h2>
+          <p className="mt-2 leading-snug text-ink-soft">Ceritakan kepada kami. Petugas akan memeriksanya.</p>
+          {home.episodes.length === 0 ? (
+            <Callout tone="neutral" className="mt-4" icon={<IconInfo size={18} />}>Belum ada perawatan yang dapat dilaporkan.</Callout>
+          ) : (
+            <button type="button" className={`${BTN.primary} mt-5 min-h-16 text-[1.1em]`} onClick={() => setStep(one ? "category" : "episode")}>
+              Mulai lapor <IconArrowRight size={20} />
+            </button>
+          )}
+        </article>
+        <div className="mt-auto shrink-0">
+          <RowLink icon={<IconList size={22} />} label="Laporan saya" count={home.reports.length} onClick={onReports} />
+        </div>
+      </div>
+    );
+
+  if (step === "episode")
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <ScreenTitle title="Perawatan yang mana?" onBack={() => setStep("start")} aside={kicker("episode")} />
+        <AutoPager
+          label="Halaman pilihan perawatan"
+          items={home.episodes.map((e) => ({
+            key: e.id,
+            node: <Choice label={clean(e.facility_name)} sub={`${e.kind} · ${fmtDate(e.admit_at)}`} on={episode === e.id} onClick={() => { setEpisode(e.id); setStep("category"); }} />,
+          }))}
+        />
+      </div>
+    );
+
+  if (step === "category")
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <ScreenTitle title="Soal apa?" onBack={() => setStep(one ? "start" : "episode")} aside={kicker("category")} />
+        <AutoPager
+          label="Halaman pilihan kendala"
+          items={CATEGORIES.map((c) => ({ key: c.id, node: <Choice label={c.label} on={category === c.id} onClick={() => { setCategory(c.id); setStep("text"); }} /> }))}
+        />
+      </div>
+    );
+
+  const ep = home.episodes.find((e) => e.id === episode);
+  const cat = CATEGORIES.find((c) => c.id === category);
   return (
-    <Frame title="Lapor kendala" onBack={onBack}>
-      <p className="text-[0.9em] leading-snug text-ink-soft">Ceritakan kendala Anda. Petugas akan memeriksanya, tak perlu menunggu survei.</p>
-      <form onSubmit={submit} className="space-y-5">
-        <div>
-          <label htmlFor="ep" className="block text-[0.92em] font-semibold">Perawatan yang mana?</label>
-          <select id="ep" required value={episode} onChange={(e) => setEpisode(e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-line-strong bg-card px-3">
-            {home.episodes.map((e) => <option key={e.id} value={e.id}>{clean(e.facility_name)} · {fmtDate(e.admit_at)}</option>)}
-          </select>
-        </div>
-        <fieldset>
-          <legend className="text-[0.92em] font-semibold">Soal apa?</legend>
-          <div className="mt-1.5 grid gap-2">
-            {CATEGORIES.map((c) => (
-              <label key={c.id} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2 leading-snug transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand ${category === c.id ? "border-brand bg-brand-soft font-semibold text-brand-ink" : "border-line-strong bg-card hover:bg-subtle"}`}>
-                <input type="radio" name="cat" required value={c.id} checked={category === c.id} onChange={() => setCategory(c.id)} className="peer sr-only" />
-                <span aria-hidden className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${category === c.id ? "border-brand bg-brand text-white" : "border-line-strong"}`}>
-                  {category === c.id && <IconCheck size={12} />}
-                </span>
-                {c.label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div>
-          <label htmlFor="rt" className="block text-[0.92em] font-semibold">Ceritakan singkat</label>
-          <textarea id="rt" required minLength={8} maxLength={1000} rows={5} value={text} onChange={(e) => setText(e.target.value)} className="mt-1.5 w-full rounded-xl border border-line-strong bg-card p-3 leading-snug" placeholder="Apa yang terjadi dan kapan?" />
-          <p className="mt-1 flex justify-between gap-2 text-[0.78em] text-muted"><span>Jangan menuliskan nomor identitas atau kata sandi.</span><span className="tabular-nums">{text.length}/1000</span></p>
-        </div>
-        {err && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{err}</Callout>}
-        <button type="submit" disabled={busy || !episode || !category} className={BTN.primary}>{busy && <Spinner />} {busy ? "Mengirim…" : "Kirim laporan"}</button>
-      </form>
-    </Frame>
+    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-3">
+      <ScreenTitle title="Ceritakan singkat" onBack={() => setStep("category")} aside={kicker("text")} />
+      <p className="flex shrink-0 flex-wrap gap-1.5">
+        {cat && <Tag tone="brand">{cat.label}</Tag>}
+        {ep && <Tag>{clean(ep.facility_name)} · {fmtDate(ep.admit_at)}</Tag>}
+      </p>
+      <label htmlFor="rt" className="sr-only">Ceritakan singkat</label>
+      <textarea id="rt" required minLength={8} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} className="min-h-[5.5em] w-full flex-1 resize-none rounded-2xl border border-line-strong bg-card p-3.5 leading-snug shadow-e1" placeholder="Apa yang terjadi dan kapan?" />
+      <p className="flex shrink-0 justify-between gap-2 text-[0.88em] leading-snug text-ink-soft"><span>Jangan tulis nomor identitas atau kata sandi.</span><span className="tabular-nums">{text.length}/1000</span></p>
+      {err && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{err}</Callout>}
+      <button type="submit" disabled={busy || !episode || !category || text.trim().length < 8} className={`${BTN.primary} shrink-0`}>{busy && <Spinner />} {busy ? "Mengirim…" : "Kirim laporan"}</button>
+    </form>
   );
 }
 
-function HelpForm({ sessionId, onDone, onBack }: { sessionId?: string; onDone: () => void; onBack: () => void }) {
+function Reports({ reports, onBack }: { reports: ReportView[]; onBack: () => void }) {
+  const [open, setOpen] = useState<ReportView | null>(null);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <ScreenTitle title="Laporan saya" onBack={onBack} backLabel="Lapor" />
+      {reports.length === 0 ? (
+        <Empty icon={<IconFlag size={24} />} title="Belum ada laporan" text="Anda dapat melapor kapan saja." />
+      ) : (
+        <AutoPager
+          label="Halaman laporan"
+          items={reports.map((r) => ({
+            key: r.id,
+            node: (
+              <button type="button" onClick={() => setOpen(r)} className="w-full rounded-3xl bg-card p-4 text-left shadow-e1 transition-colors hover:bg-brand-tint">
+                <span className="flex items-start justify-between gap-2">
+                  <span className="font-semibold leading-snug">{r.category_label}</span>
+                  <Tag tone="info">{r.status_label}</Tag>
+                </span>
+                <span className="mt-1 line-clamp-2 block leading-snug text-ink-soft">{r.text}</span>
+                <span className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-ink">Detail <IconChevronRight size={18} /></span>
+              </button>
+            ),
+          }))}
+        />
+      )}
+      <AnimatePresence>
+        {open && (
+          <Sheet key="rep" title={open.category_label} titleId="rep-h" onClose={() => setOpen(null)}>
+            <Tag tone="info">{open.status_label}</Tag>
+            <p className="leading-snug text-ink">{open.text}</p>
+            <p className="text-[0.92em] leading-snug text-ink-soft">{clean(open.facility_name)} · {fmtDate(open.created_at)}</p>
+            <Callout tone="brand" icon={<IconInfo size={18} className="text-brand" />}>{open.hint}</Callout>
+          </Sheet>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ---------- Bantuan ---------- */
+
+function HelpForm({ sessionId, openHelps, onDone, onBack }: { sessionId?: string; openHelps: number; onDone: () => void; onBack?: () => void }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -461,69 +631,99 @@ function HelpForm({ sessionId, onDone, onBack }: { sessionId?: string; onDone: (
       setBusy(false);
     }
   }
+  if (sent)
+    return (
+      <Done title="Permintaan terkirim" action={<button type="button" onClick={onDone} className={BTN.primary}>{sessionId ? "Kembali ke survei" : "Kembali ke beranda"}</button>}>
+        <p>Petugas akan menghubungi Anda.</p>
+      </Done>
+    );
   return (
-    <Frame title="Bantuan petugas" onBack={onBack}>
-      <Callout tone="warn" icon={<IconAlert size={18} className="text-warn" />}>
-        Bila darurat, segera ke IGD terdekat. Permintaan di sini tidak dijawab seketika dan bukan saran medis.
+    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-3">
+      <ScreenTitle title="Bantuan petugas" onBack={onBack} backLabel="Kembali ke survei" />
+      <Callout tone="warn" icon={<IconAlert size={20} className="text-warn" />}>
+        <strong className="font-semibold">Darurat?</strong> Segera ke IGD terdekat. Permintaan di sini tidak dijawab seketika.
       </Callout>
-      {sent ? (
-        <>
-          <SuccessBlock title="Permintaan terkirim">
-            <p>Sudah diteruskan ke petugas.</p>
-          </SuccessBlock>
-          <button type="button" onClick={onDone} className={BTN.primary}>Kembali ke beranda</button>
-        </>
-      ) : (
-        <form onSubmit={submit} className="space-y-3">
-          <label htmlFor="hr" className="block text-[0.92em] font-semibold">Bantuan apa yang Anda perlukan?</label>
-          <textarea id="hr" required minLength={3} maxLength={500} rows={4} value={reason} onChange={(e) => setReason(e.target.value)} className="w-full rounded-xl border border-line-strong bg-card p-3 leading-snug" />
-          {err && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{err}</Callout>}
-          <button type="submit" disabled={busy} className={BTN.primary}>{busy && <Spinner />} {busy ? "Mengirim…" : "Kirim permintaan"}</button>
-        </form>
+      {openHelps > 0 && (
+        <Callout tone="brand" role="status" icon={<IconClock size={18} className="text-brand" />}>
+          {openHelps} permintaan Anda sedang menunggu petugas.
+        </Callout>
       )}
-    </Frame>
+      <label htmlFor="hr" className="shrink-0 pt-1 text-[1.05em] font-semibold">Bantuan apa yang Anda perlukan?</label>
+      <textarea id="hr" required minLength={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className="min-h-[4.5em] w-full flex-1 resize-none rounded-2xl border border-line-strong bg-card p-3.5 leading-snug shadow-e1" placeholder="Contoh: saya bingung cara menjawab" />
+      {err && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{err}</Callout>}
+      <button type="submit" disabled={busy || reason.trim().length < 3} className={`${BTN.primary} shrink-0`}>{busy && <Spinner />} {busy ? "Mengirim…" : "Kirim permintaan"}</button>
+      <p className="flex shrink-0 items-start gap-2 text-[0.85em] leading-snug text-ink-soft">
+        <IconShield size={17} className="mt-0.5 shrink-0" /> Prototipe, data sintetis. Bukan aplikasi resmi BPJS Kesehatan.
+      </p>
+    </form>
   );
 }
 
-function History({ onBack }: { onBack: () => void }) {
+/* ---------- Riwayat ---------- */
+
+function History() {
   const [h, setH] = useState<HistoryView | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(null);
   useEffect(() => {
     api<HistoryView>("/api/survey/history").then(setH).catch((e) => setErr(e instanceof Error ? e.message : "Gagal memuat."));
   }, []);
+  const s = h?.sessions.find((x) => x.id === sel);
+  if (s)
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <ScreenTitle title={s.stage_label} onBack={() => setSel(null)} backLabel="Riwayat" sub={`${clean(s.facility_name)} · ${s.status}${s.respondent_role === "companion" ? " · oleh pendamping" : ""}`} />
+        {s.facts.length === 0 ? (
+          <Empty icon={<IconHistory size={24} />} title="Belum ada jawaban" text="Belum ada jawaban tersimpan untuk survei ini." />
+        ) : (
+          <AutoPager
+            label="Halaman jawaban"
+            resetKey={s.id}
+            items={s.facts.map((f, i) => ({
+              key: `${i}`,
+              node: (
+                <div className="rounded-2xl bg-card px-4 py-3 shadow-e1">
+                  <p className="text-[0.92em] leading-snug text-ink-soft">{f.slot_label}</p>
+                  <p className="mt-0.5 text-[1.05em] font-semibold leading-snug">{f.value_label}{f.origin === "correction" && <span className="font-normal text-ink-soft"> (sudah Anda ubah)</span>}</p>
+                </div>
+              ),
+            }))}
+          />
+        )}
+      </div>
+    );
   return (
-    <Frame title="Riwayat jawaban" onBack={onBack}>
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <ScreenTitle title="Riwayat jawaban" />
       {err && <Callout tone="danger" role="alert" icon={<IconAlert size={18} />}>{err}</Callout>}
       {!h && !err && (
         <div role="status" aria-label="Memuat" className="space-y-2.5">
-          {[0, 1].map((i) => <div key={i} className="skeleton h-[4.5rem] rounded-2xl" />)}
+          {[0, 1].map((i) => <div key={i} className="skeleton h-20 rounded-3xl" />)}
           <span className="sr-only">Memuat…</span>
         </div>
       )}
-      {h && h.sessions.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-line-strong bg-card px-4 py-8 text-center">
-          <span className="mx-auto grid size-10 place-items-center rounded-full bg-subtle text-muted" aria-hidden><IconHistory size={20} /></span>
-          <p className="mt-2 font-semibold">Belum ada jawaban</p>
-          <p className="mt-0.5 text-[0.85em] text-ink-soft">Jawaban yang tersimpan muncul di sini.</p>
-        </div>
+      {h && h.sessions.length === 0 && <Empty icon={<IconHistory size={24} />} title="Belum ada jawaban" text="Jawaban yang tersimpan muncul di sini." />}
+      {h && h.sessions.length > 0 && (
+        <AutoPager
+          label="Halaman riwayat"
+          items={h.sessions.map((x) => ({
+            key: x.id,
+            node: (
+              <button type="button" onClick={() => setSel(x.id)} className="flex min-h-16 w-full items-center gap-3 rounded-3xl bg-card p-4 text-left shadow-e1 transition-colors hover:bg-brand-tint">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-ok-soft text-ok" aria-hidden><IconCheck size={22} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold leading-snug">{x.stage_label}</span>
+                  <span className="block text-[0.92em] leading-snug text-ink-soft">
+                    {x.started_at ? fmtDate(x.started_at) : clean(x.facility_name)} · {x.status}
+                    {x.respondent_role === "companion" ? " · oleh pendamping" : ""}
+                  </span>
+                </span>
+                <IconChevronRight size={22} className="shrink-0 text-ink-soft" />
+              </button>
+            ),
+          }))}
+        />
       )}
-      {h?.sessions.map((s) => (
-        <details key={s.id} className="group rounded-2xl border border-line bg-card open:shadow-depth-1">
-          <summary className="flex min-h-14 cursor-pointer items-center gap-3 p-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold leading-snug">{s.stage_label}</p>
-              <p className="mt-0.5 text-[0.8em] leading-snug text-ink-soft">{clean(s.facility_name)} · {s.status}{s.respondent_role === "companion" ? " · dijawab pendamping" : ""}</p>
-            </div>
-            <IconChevron size={18} className="shrink-0 text-muted transition-transform group-open:rotate-180" />
-          </summary>
-          <ul className="space-y-2 border-t border-line px-4 pb-4 pt-3">
-            {s.facts.length === 0 && <li className="text-[0.85em] text-muted">Belum ada jawaban tersimpan.</li>}
-            {s.facts.map((f, i) => (
-              <li key={i} className="text-[0.9em] leading-snug"><span className="text-muted">{f.slot_label}:</span> <span className="font-semibold">{f.value_label}</span>{f.origin === "correction" ? <span className="text-muted"> (sudah Anda ubah)</span> : null}</li>
-            ))}
-          </ul>
-        </details>
-      ))}
-    </Frame>
+    </div>
   );
 }
