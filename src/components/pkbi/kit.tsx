@@ -46,8 +46,8 @@ export function useAct() {
 export function Msg({ msg, ok }: { msg: string | null; ok?: string | null }) {
   return (
     <>
-      {msg && <p role="alert" className="mt-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-[13px] text-danger">{msg}</p>}
-      {ok && <p role="status" className="mt-2 text-[13px] font-medium text-ok">{ok}</p>}
+      {msg && <p role="alert" className="mt-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-caption text-danger">{msg}</p>}
+      {ok && <p role="status" className="mt-2 text-caption font-medium text-ok">{ok}</p>}
     </>
   );
 }

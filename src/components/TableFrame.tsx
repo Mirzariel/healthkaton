@@ -19,11 +19,11 @@ export function TableFrame({ children, className = "", label = "Tabel data" }: {
     return () => observer.disconnect();
   }, [children]);
   return (
-    <div className={`min-w-0 max-w-full rounded-xl border border-line bg-card shadow-depth-1 ${className}`}>
+    <div className={`table-frame min-w-0 max-w-full overflow-hidden rounded-card bg-card shadow-e1 ${className}`}>
       <div ref={scroll} className="scroll-x table-scroll rounded-[inherit] focus-visible:outline-offset-[-2px]" role="region" aria-label={label} tabIndex={0}>
         <div ref={content}>{children}</div>
       </div>
-      {wide && <p className="no-print flex items-center gap-1.5 border-t border-line px-3 py-2 text-[12px] text-muted"><IconChevronRight size={14} /> Geser tabel untuk melihat semua kolom<span className="sr-only">. Dengan papan ketik, gunakan tombol panah kiri dan kanan.</span></p>}
+      {wide && <p className="table-hint no-print flex items-center gap-1.5 border-t border-line px-3 py-2 text-caption text-muted"><IconChevronRight size={14} /> Geser tabel untuk melihat semua kolom<span className="sr-only">. Dengan papan ketik, gunakan tombol panah kiri dan kanan.</span></p>}
     </div>
   );
 }

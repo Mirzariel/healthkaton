@@ -160,3 +160,19 @@ export const IconSend = (p: P) => (
     <path d="m11.500 13.500 3-3" />
   </Svg>
 );
+export const IconChevronRight = (p: P) => (
+  <Svg {...p}>
+    <path d="M9 5l7 7-7 7" />
+  </Svg>
+);
+export const IconChat = (p: P) => (
+  <Svg {...p}>
+    <path d="M20 12a7.500 7.500 0 0 1-11 6.600L4 20l1.400-4.600A7.500 7.500 0 1 1 20 12z" />
+  </Svg>
+);
+export const IconPen = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+    <path d="M13.500 6.500l4 4" />
+  </Svg>
+);

@@ -20,7 +20,7 @@ const SEGMENTS: { k: string; cls: string; label: string; legend: string }[] = [
 /** Komposisi jawaban satu baris: negatif / positif / tidak tahu / tidak berlaku / tidak ditanya / tidak merespons. Selalu disertai angka pada kolom lain. */
 export function CompositionBar({ row }: { row: GapRow }) {
   const total = row.eligible - row.in_progress;
-  if (total <= 0) return <span className="text-[12px] text-muted">–</span>;
+  if (total <= 0) return <span className="text-caption text-muted">–</span>;
   const n: Record<string, number> = { neg: row.negative, pos: row.positive, unk: row.unknown, na: row.not_applicable, nask: row.not_asked, nr: row.nonresponse };
   return <StackedBar total={total} segments={SEGMENTS.map((s) => ({ key: s.k, n: n[s.k], cls: s.cls, label: s.label }))} />;
 }
@@ -35,7 +35,7 @@ export function GapCell({ row }: { row: Pick<GapRow, "gap" | "ci" | "n_valid" | 
   return (
     <span className={row.sufficient ? "" : "text-muted"}>
       <span className="font-semibold tabular-nums">{pct(row.gap)}</span>
-      <span className="ml-1 whitespace-nowrap text-[12px] tabular-nums text-muted">({pctRange(row.ci)})</span>
+      <span className="ml-1 whitespace-nowrap text-caption tabular-nums text-muted">({pctRange(row.ci)})</span>
       {!row.sufficient && <span className="ml-1.5 inline-block align-middle"><StatusPill tone="warn" dot={false} title="Jawaban sah kurang dari batas minimum untuk analisis agregat. Laporan individual tetap ditindaklanjuti.">Data belum cukup</StatusPill></span>}
     </span>
   );

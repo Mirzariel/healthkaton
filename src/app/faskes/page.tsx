@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ClarificationItem, FindingItem } from "@/components/faskes/parts";
 import { IconCheckCircle, IconChevronRight } from "@/components/icons";
-import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, StatusPill, Stat } from "@/components/ui";
+import { Card, EmptyState, Forbidden, PageHeader, Section, SectionTitle, StatGrid, StatusPill, Stat } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { facilityActions, facilityClarifications, facilityHome } from "@/lib/casework/queries";
 import { nowIso } from "@/lib/clock";
@@ -40,14 +40,19 @@ export default async function FaskesHome() {
         node: (
           <Link href="/faskes/tindakan" className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-subtle/70">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <span className="font-mono text-[12px] text-muted">{a.id}</span>
+              <div className="flex flex-col-reverse items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
+                <div className="min-w-0">
+                  <p className="text-caption text-muted">Tindakan perbaikan</p>
+                  <p className="mt-0.5 text-body-sm font-semibold leading-snug text-ink">{a.description}</p>
+                </div>
                 <StatusPill tone={late ? "danger" : "warn"}>{ACTION_LABEL[a.status as keyof typeof ACTION_LABEL]}</StatusPill>
               </div>
-              <p className="mt-1.5 text-[14px] font-semibold leading-snug text-ink">{a.description}</p>
-              <p className="mt-1.5 text-[12.5px] text-muted">
-                Target {fmtDate(a.target_date)}
-                {diff !== null && <span className={late ? "ml-2 font-medium text-danger" : "ml-2"}>{late ? `lewat ${-diff} hari` : diff === 0 ? "hari ini" : `${diff} hari lagi`}</span>}
+              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
+                <span>
+                  Target {fmtDate(a.target_date)}
+                  {diff !== null && <span className={late ? "ml-2 font-medium text-danger" : "ml-2"}>{late ? `lewat ${-diff} hari` : diff === 0 ? "hari ini" : `${diff} hari lagi`}</span>}
+                </span>
+                <span title="Nomor tindakan">No. <span className="font-mono">{a.id}</span></span>
               </p>
             </div>
             <IconChevronRight size={16} className="mt-1 shrink-0 text-line-strong transition-colors group-hover:text-ink-soft" />
@@ -61,18 +66,18 @@ export default async function FaskesHome() {
   const FIRST_FINDINGS = 5;
   return (
     <>
-      <PageHeader title="Ringkasan faskes" purpose="Klarifikasi, bantahan, dan tindakan perbaikan untuk faskes Anda." />
+      <PageHeader title="Ringkasan faskes" purpose="Yang perlu Anda tanggapi dan status temuan faskes Anda." />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatGrid>
         <Stat label="Menunggu jawaban" value={h.waiting} tone={h.waiting ? "warn" : "default"} href="/faskes/klarifikasi" />
         <Stat label="Lewat tenggat" value={h.lapsed} href="/faskes/klarifikasi" hint="Masih dapat dijawab" />
         <Stat label="Bantahan menunggu" value={h.disputesOpen} href="/faskes/bantahan" />
         <Stat label="Tindakan berjalan" value={h.actionsOpen} href="/faskes/tindakan" hint={h.actionsOverdue ? `${h.actionsOverdue} lewat target` : undefined} tone={h.actionsOverdue ? "danger" : "default"} />
-      </div>
+      </StatGrid>
 
       <Section className="mt-9">
-        <SectionTitle title="Perlu Anda tanggapi" hint="Jawaban terlambat tetap diterima.">
-          {todo.length > MAX_TODO && <Link href="/faskes/klarifikasi" className="link text-[13px]">Lihat semua</Link>}
+        <SectionTitle title="Perlu Anda tanggapi" info="klarifikasi">
+          {todo.length > MAX_TODO && <Link href="/faskes/klarifikasi" className="link text-caption">Lihat semua</Link>}
         </SectionTitle>
         <Card elevated className="divide-y divide-line overflow-hidden">
           {shown.length === 0 ? (
@@ -84,15 +89,15 @@ export default async function FaskesHome() {
       </Section>
 
       <Section>
-        <SectionTitle title="Temuan faskes Anda" hint="Status ditentukan petugas dan reviewer, bukan sistem. Anda dapat membantah kapan saja." />
+        <SectionTitle title="Temuan faskes Anda" info="pembuktian" hint="Status ditetapkan petugas dan reviewer. Anda dapat membantah kapan saja." />
         {h.findings.length === 0 ? (
           <div className="panel-inset"><EmptyState title="Belum ada temuan" /></div>
         ) : (
-          <div className="panel-inset divide-y divide-line overflow-hidden">
+          <div className="divide-y divide-line overflow-hidden rounded-card bg-card shadow-e1">
             {h.findings.slice(0, FIRST_FINDINGS).map((f) => <FindingItem key={f.id} f={f} />)}
             {h.findings.length > FIRST_FINDINGS && (
               <details className="group">
-                <summary className="cursor-pointer select-none px-4 py-3 text-[13.5px] font-medium text-brand-ink hover:bg-card/60">
+                <summary className="cursor-pointer select-none px-4 py-3 text-body-sm font-medium text-brand-ink hover:bg-subtle/60">
                   <span className="group-open:hidden">Tampilkan {h.findings.length - FIRST_FINDINGS} temuan lainnya</span>
                   <span className="hidden group-open:inline">Sembunyikan temuan lainnya</span>
                 </summary>
@@ -101,7 +106,7 @@ export default async function FaskesHome() {
             )}
           </div>
         )}
-        <p className="text-[12.5px] text-muted">&quot;Tidak dapat dibuktikan&quot; berarti bukti belum cukup, bukan layanan tidak dilakukan.</p>
+        <p className="text-caption text-muted">&quot;Tidak dapat dibuktikan&quot; berarti bukti belum cukup, bukan layanan tidak dilakukan.</p>
       </Section>
     </>
   );

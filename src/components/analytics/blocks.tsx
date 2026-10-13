@@ -5,8 +5,9 @@ import { IconChevronDown } from "@/components/icons";
 import { Card } from "@/components/ui";
 import type { GlossaryKey } from "@/lib/glossary";
 
-/** Kisi sel bergaris: satu kartu berisi beberapa sel berdampingan. Cocok untuk alur atau ringkasan berurutan. */
-export function CellGrid({ children, className = "md:grid-cols-2 lg:grid-cols-3" }: { children: ReactNode; className?: string }) {
+/** Kisi sel bergaris: satu kartu berisi beberapa sel berdampingan. Cocok untuk alur atau ringkasan berurutan.
+    Bawaan: kolom auto-fit (min 18rem). `className` menggantikan aturan kolom bila diberikan. */
+export function CellGrid({ children, className = "grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]" }: { children: ReactNode; className?: string }) {
   return (
     <Card elevated className="overflow-hidden">
       <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
@@ -21,10 +22,10 @@ export function Cell({ children, className = "" }: { children: ReactNode; classN
 export function Metric({ label, value, hint, info, children, className = "" }: { label: ReactNode; value?: ReactNode; hint?: ReactNode; info?: GlossaryKey; children?: ReactNode; className?: string }) {
   return (
     <Card className={`min-w-0 px-4 py-3.5 ${className}`}>
-      <p className="flex items-center gap-1.5 text-[13px] font-medium leading-snug text-ink-soft">{label}{info && <InfoDot k={info} />}</p>
-      {value !== undefined && <p className="mt-1.5 text-[1.375rem] font-semibold leading-none tracking-tight tabular-nums text-ink">{value}</p>}
+      <p className="flex items-center gap-1.5 text-caption font-medium leading-snug text-ink-soft">{label}{info && <InfoDot k={info} />}</p>
+      {value !== undefined && <p className="mt-1.5 text-title-2 font-semibold leading-none tabular-nums text-ink">{value}</p>}
       {children && <div className="mt-1.5">{children}</div>}
-      {hint && <p className="mt-2 text-[12.5px] leading-snug text-muted">{hint}</p>}
+      {hint && <p className="mt-2 text-caption leading-snug text-muted">{hint}</p>}
     </Card>
   );
 }
@@ -34,9 +35,9 @@ export function Disclosure({ title, meta, children, className = "", defaultOpen 
   return (
     <Card className={className}>
       <details open={defaultOpen} className="group">
-        <summary className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-[14px] font-semibold text-ink hover:bg-subtle/60">
+        <summary className="flex min-h-11 items-center justify-between gap-3 rounded-card px-4 py-2.5 text-body-sm font-semibold text-ink hover:bg-subtle/60">
           <span className="min-w-0">{title}</span>
-          <span className="flex shrink-0 items-center gap-2 text-[12.5px] font-normal text-muted">
+          <span className="flex shrink-0 items-center gap-2 text-caption font-normal text-muted">
             {meta}
             <IconChevronDown size={16} className="transition-transform duration-150 group-open:rotate-180" />
           </span>
@@ -50,7 +51,7 @@ export function Disclosure({ title, meta, children, className = "", defaultOpen 
 /** Catatan panjang yang disembunyikan di balik "Selengkapnya". Teks ringkas tetap ditulis oleh pemanggil di luar komponen ini. */
 export function More({ children, label = "Selengkapnya", className = "" }: { children: ReactNode; label?: string; className?: string }) {
   return (
-    <details className={`group text-[12.5px] leading-relaxed text-muted ${className}`}>
+    <details className={`group text-caption leading-relaxed text-muted ${className}`}>
       <summary className="inline-flex cursor-pointer items-center gap-1 font-medium text-ink-soft hover:text-ink">
         {label}
         <IconChevronDown size={14} className="transition-transform duration-150 group-open:rotate-180" />
@@ -68,7 +69,7 @@ export function Inset({ children, className = "" }: { children: ReactNode; class
 /** Label + kontrol untuk bilah filter. */
 export function FilterField({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className={`block min-w-0 text-[12.5px] font-medium text-ink-soft ${className}`}>
+    <label className={`block min-w-0 text-caption font-medium text-ink-soft ${className}`}>
       <span className="mb-1 block">{label}</span>
       {children}
     </label>
@@ -85,10 +86,10 @@ export function FilterChips({ items, label }: { items: { href: string; label: Re
             <Link
               href={it.href}
               aria-current={it.active ? "page" : undefined}
-              className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium transition-colors ${it.active ? "border-ink bg-ink text-white" : "border-line-strong bg-card text-ink-soft hover:bg-subtle hover:text-ink"}`}
+              className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 text-caption font-medium transition-colors ${it.active ? "border-ink bg-ink text-white" : "border-line-strong bg-card text-ink-soft hover:bg-subtle hover:text-ink"}`}
             >
               {it.label}
-              {it.count !== undefined && <span className={`text-[12px] tabular-nums ${it.active ? "text-white/75" : "text-muted"}`}>{it.count}</span>}
+              {it.count !== undefined && <span className={`text-caption tabular-nums ${it.active ? "text-white/75" : "text-muted"}`}>{it.count}</span>}
             </Link>
           </li>
         ))}

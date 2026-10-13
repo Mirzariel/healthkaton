@@ -86,11 +86,11 @@ export default async function ConsoleHome() {
       <section aria-labelledby="ringkasan-judul" className="relative isolate overflow-hidden rounded-2xl bg-night text-on-night shadow-depth-3">
         <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_90%_at_100%_0%,rgb(47_165_143/0.18),transparent_65%)]" />
         <div className="px-5 pb-2 pt-6 md:px-7 md:pt-7">
-          <p className="text-[13px] font-medium text-mint">{ROLE_LABEL[me.role]}</p>
-          <h1 id="ringkasan-judul" className="mt-1.5 text-[1.6rem] font-semibold leading-tight tracking-[-0.025em] text-white md:text-[2rem]">
+          <p className="text-caption font-medium text-mint">{ROLE_LABEL[me.role]}</p>
+          <h1 id="ringkasan-judul" className="mt-1.5 text-title-2 font-semibold leading-tight tracking-[-0.025em] text-white md:text-title-1">
             Halo, {me.name.split(",")[0]}.
           </h1>
-          <p className="mt-1.5 text-[14.5px] text-on-night-soft">Apa yang menunggu, dan dari mana datanya berasal.</p>
+          <p className="mt-1.5 text-body text-on-night-soft">Apa yang menunggu, dan dari mana datanya berasal.</p>
         </div>
         <div className="mt-4 grid grid-cols-2 border-t border-white/10 lg:grid-cols-4">
           {[
@@ -101,12 +101,12 @@ export default async function ConsoleHome() {
           ].map((k, i) => {
             const body = (
               <>
-                <p className="flex items-center gap-2 text-[12.5px] font-medium text-on-night-soft">
+                <p className="flex items-center gap-2 text-caption font-medium text-on-night-soft">
                   {k.warn && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />}
                   {k.label}
                 </p>
-                <p className="mt-2 text-[1.9rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">{k.value.toLocaleString("id-ID")}</p>
-                <p className="mt-2 text-[12px] text-on-night-soft/80">{k.hint}</p>
+                <p className="mt-2 text-title-1 font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">{k.value.toLocaleString("id-ID")}</p>
+                <p className="mt-2 text-caption text-on-night-soft/80">{k.hint}</p>
               </>
             );
             const cls = `block px-5 py-4 md:px-7 md:py-5 ${i % 2 === 1 ? "border-l border-white/10" : ""} ${i >= 2 ? "border-t border-white/10 lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`;
@@ -132,18 +132,18 @@ export default async function ConsoleHome() {
 
           <section className="space-y-3" aria-labelledby="modul">
             <SectionTitle id="modul" title="Yang tersedia untuk peran ini" />
-            {ready.length === 0 && <Card className="p-4 text-sm text-ink-soft">Belum ada halaman lain untuk peran ini.</Card>}
+            {ready.length === 0 && <Card className="p-4 text-body-sm text-ink-soft">Belum ada halaman lain untuk peran ini.</Card>}
             <Card className="divide-y divide-line overflow-hidden">
               {groups.map((g) => (
                 <div key={g}>
-                  <p className="bg-subtle/60 px-4 py-1.5 text-[12.5px] font-medium text-muted">{g}</p>
+                  <p className="bg-subtle/60 px-4 py-1.5 text-caption font-medium text-muted">{g}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2">
                     {ready.filter((i) => i.group === g).map((i) => {
                       const Icon = ICON[i.href] ?? IconFile;
                       return (
                         <Link key={i.href} href={i.href} title={DESC[i.href] ?? i.note} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-subtle/60">
                           <Icon size={16} className="shrink-0 text-ink-soft" />
-                          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink">{i.label}</span>
+                          <span className="min-w-0 flex-1 truncate text-body-sm font-medium text-ink">{i.label}</span>
                           <IconChevronRight size={15} className="shrink-0 text-line-strong transition-colors group-hover:text-ink-soft" />
                         </Link>
                       );
@@ -152,7 +152,7 @@ export default async function ConsoleHome() {
                 </div>
               ))}
             </Card>
-            {CONSOLE_NAV.some((i) => !i.ready) && <p className="text-xs text-muted">Halaman lain dalam peta rute ({CONSOLE_NAV.filter((i) => !i.ready).length}) belum aktif dan tidak ditampilkan.</p>}
+            {CONSOLE_NAV.some((i) => !i.ready) && <p className="text-caption text-muted">Halaman lain dalam peta rute ({CONSOLE_NAV.filter((i) => !i.ready).length}) belum aktif dan tidak ditampilkan.</p>}
           </section>
         </div>
 
@@ -162,22 +162,22 @@ export default async function ConsoleHome() {
             <ul className="divide-y divide-line/70 pb-1">
               {statuses.map((s) => (
                 <li key={s.name} className="flex items-center justify-between gap-3 px-5 py-2.5">
-                  <span className="min-w-0 text-[13.5px] text-ink">{ADAPTER_NAME[s.name] ?? s.name}</span>
+                  <span className="min-w-0 text-body-sm text-ink">{ADAPTER_NAME[s.name] ?? s.name}</span>
                   <SourceBadge source={s.source} />
                 </li>
               ))}
               <li className="px-5 py-2.5">
-                <span className="text-[13.5px] text-ink">Mesin AI</span>
-                <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{liveAvailable() ? "Penyedia langsung (kunci tersedia)" : "Simulator berlabel, tanpa kunci penyedia"}</p>
+                <span className="text-body-sm text-ink">Mesin AI</span>
+                <p className="mt-0.5 text-caption leading-snug text-muted">{liveAvailable() ? "Penyedia langsung (kunci tersedia)" : "Simulator berlabel, tanpa kunci penyedia"}</p>
               </li>
             </ul>
             <details className="group border-t border-line/70 px-5 py-3">
-              <summary className="cursor-pointer text-[13px] font-medium text-ink-soft hover:text-ink">Selengkapnya</summary>
+              <summary className="cursor-pointer text-caption font-medium text-ink-soft hover:text-ink">Selengkapnya</summary>
               <ul className="mt-2 space-y-2.5">
                 {statuses.map((s) => (
                   <li key={s.name}>
-                    <p className="text-[13px] font-medium text-ink">{ADAPTER_NAME[s.name] ?? s.name}</p>
-                    <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{s.detail}</p>
+                    <p className="text-caption font-medium text-ink">{ADAPTER_NAME[s.name] ?? s.name}</p>
+                    <p className="mt-0.5 text-caption leading-snug text-muted">{s.detail}</p>
                   </li>
                 ))}
               </ul>

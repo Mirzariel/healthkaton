@@ -11,7 +11,7 @@ export default async function SandboxPage() {
   return (
     <>
       <PageHeader eyebrow="Standar dan AI" title="Sandbox AI" purpose="Uji satu jawaban pada dua konfigurasi. Tidak ada data nyata yang berubah." />
-      <div className="mb-5"><SimNotice>Mode “Simulasi” memakai penafsir aturan, bukan model; hasilnya bukan kualitas pemahaman model AI.</SimNotice></div>
+      <div className="mb-5"><SimNotice>Mode “Simulasi” memakai aturan, bukan model AI.</SimNotice></div>
       <SandboxLab />
     </>
   );

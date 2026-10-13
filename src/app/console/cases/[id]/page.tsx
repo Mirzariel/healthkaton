@@ -62,7 +62,7 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
     <>
       <OpenOnHash />
       <PageHeader title={`Kasus ${c.id}`} crumbs={[{ label: "Antrean kasus", href: "/console/cases" }, { label: c.id }]} eyebrow="Ruang kasus"
-        purpose="Bukti, ringkasan, dan keputusan untuk satu perawatan. Asisten hanya menyusun draf.">
+        purpose="Bukti, ringkasan, dan keputusan untuk satu perawatan.">
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -79,7 +79,7 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
                 { k: "Dibuka", v: <span className="tabular-nums">{fmtDate(c.opened_at)}</span> },
                 { k: "Target", v: <span className="tabular-nums">{fmtDate(c.due_at)}</span> },
               ]} />
-              {room.assignments.length > 0 && <p className="mt-3 text-[12.5px] leading-snug text-muted">Alasan penugasan terakhir: {room.assignments[room.assignments.length - 1].reason}</p>}
+              {room.assignments.length > 0 && <p className="mt-3 text-caption leading-snug text-muted">Alasan penugasan terakhir: {room.assignments[room.assignments.length - 1].reason}</p>}
               {can(me, "case.assign") && c.lifecycle !== "closed" && (
                 <div className="mt-4"><Disclose label="Tugaskan ulang">
                   <CommandForm command="assign_case" hidden={{ caseId: c.id }} submit="Tugaskan" tone="secondary" fields={[
@@ -92,12 +92,12 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
           </Inset>
 
           <Inset title="Perlu tindakan" flush>
-            {todo.length === 0 ? <p className="px-5 pb-4 text-[13.5px] text-ink-soft">Tidak ada yang menunggu pada kasus ini.</p> : (
+            {todo.length === 0 ? <p className="px-5 pb-4 text-body-sm text-ink-soft">Tidak ada yang menunggu pada kasus ini.</p> : (
               <ul className="divide-y divide-line/70 pb-1">
                 {todo.map((t, i) => (
                   <li key={i}>
                     <a href={t.href} className="block px-5 py-2.5 transition-colors hover:bg-card/70">
-                      <span className="block text-[13.5px] font-medium text-ink">{t.text}</span>
+                      <span className="block text-body-sm font-medium text-ink">{t.text}</span>
                       {t.fid && <RecordId>{t.fid}</RecordId>}
                     </a>
                   </li>
@@ -112,7 +112,7 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
                 <li key={r.finding.id}>
                   <a href={`#${r.finding.id}`} className="block px-5 py-2.5 transition-colors hover:bg-card/70">
                     <span className="flex items-center justify-between gap-2"><RecordId>{r.finding.id}</RecordId><ProofBadge status={r.finding.proof_status} /></span>
-                    <span className="mt-1 line-clamp-2 block text-[13.5px] text-ink">{r.finding.title}</span>
+                    <span className="mt-1 line-clamp-2 block text-body-sm text-ink">{r.finding.title}</span>
                   </a>
                 </li>
               ))}
@@ -137,16 +137,16 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
                 <Card elevated>
                   <header className="grid grid-cols-1 items-start gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
                     <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-muted"><RecordId>{f.id}</RecordId><span>{FINDING_LABEL[f.type].label}</span><span>sumber {SOURCE_LABEL[f.source]?.label ?? f.source}</span></p>
-                      <h2 id={`h-${f.id}`} className="mt-1 text-[1.125rem] font-semibold leading-snug tracking-tight">{f.title}</h2>
-                      <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-ink-soft">{f.summary}</p>
+                      <p className="flex flex-wrap items-center gap-x-2 text-caption text-muted"><RecordId>{f.id}</RecordId><span>{FINDING_LABEL[f.type].label}</span><span>sumber {SOURCE_LABEL[f.source]?.label ?? f.source}</span></p>
+                      <h2 id={`h-${f.id}`} className="mt-1 text-title-3 font-semibold leading-snug tracking-tight">{f.title}</h2>
+                      <p className="mt-1 max-w-3xl text-body-sm leading-relaxed text-ink-soft">{f.summary}</p>
                     </div>
-                    <ProofBadge status={f.proof_status} />
+                    <span className="justify-self-start"><ProofBadge status={f.proof_status} /></span>
                   </header>
                   <nav aria-label={`Bagian temuan ${f.id}`} className="border-t border-line px-3 py-1.5">
-                    <ul className="flex flex-wrap items-center gap-0.5">
+                    <ul className="no-scrollbar flex items-center gap-0.5 overflow-x-auto sm:flex-wrap">
                       {chips(f.id, !!f.claim_id).map(([label, anchor]) => (
-                        <li key={anchor}><a href={`#${anchor}`} className="block rounded-md px-2.5 py-1 text-[12.5px] font-medium text-ink-soft transition-colors hover:bg-subtle hover:text-ink">{label}</a></li>
+                        <li key={anchor} className="shrink-0"><a href={`#${anchor}`} className="block whitespace-nowrap rounded-md px-2.5 py-1 text-caption font-medium text-ink-soft transition-colors hover:bg-subtle hover:text-ink">{label}</a></li>
                       ))}
                     </ul>
                   </nav>
@@ -185,7 +185,7 @@ export default async function CaseRoomPage({ params }: { params: Promise<{ id: s
             can(me, "case.review") ? (
               <section id="penutupan" aria-label="Penutupan kasus" className="scroll-mt-20">
                 <Section title="Tutup kasus" open={canClose} hint="Syarat: semua temuan final dan semua tindakan ditutup.">
-                  {canClose ? <CommandForm command="close_case" hidden={{ caseId: c.id }} submit="Tutup kasus" tone="secondary" confirm="Tutup kasus ini?" fields={[{ kind: "textarea", name: "reason", label: "Alasan penutupan (minimal 10 karakter)", rows: 2, required: true }]} /> : <p className="text-sm text-ink-soft">Belum dapat ditutup: {open} temuan belum final, {actionsOpen} tindakan belum ditutup.</p>}
+                  {canClose ? <CommandForm command="close_case" hidden={{ caseId: c.id }} submit="Tutup kasus" tone="secondary" confirm="Tutup kasus ini?" fields={[{ kind: "textarea", name: "reason", label: "Alasan penutupan (minimal 10 karakter)", rows: 2, required: true }]} /> : <p className="text-body-sm text-ink-soft">Belum dapat ditutup: {open} temuan belum final, {actionsOpen} tindakan belum ditutup.</p>}
                 </Section>
               </section>
             ) : null

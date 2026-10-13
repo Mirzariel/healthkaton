@@ -2,13 +2,13 @@
 
 import { MotionConfig, animate, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { EASE_OUT as EASE } from "@/lib/motionTokens";
 
 /** Semua gerak mengikuti preferensi "kurangi gerak" pengguna. */
 export function MotionRoot({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 /* Animasi masuk hanya pada pemuatan pertama; perpindahan filter/halaman tidak mengulang. */
 let played = false;

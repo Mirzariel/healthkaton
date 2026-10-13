@@ -30,19 +30,19 @@ function Result({ title, r }: { title: string; r: Brief }) {
   return (
     <Card className="min-w-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-5 py-3">
-        <h3 className="text-[14px] font-semibold text-ink">{title}</h3>
+        <h3 className="text-body-sm font-semibold text-ink">{title}</h3>
         <AiModeBadge mode={r.mode as "live" | "simulated" | "fallback"} />
-        <span className="font-mono text-[12px] text-muted">{r.prompt_version}</span>
-        <span className="text-[12.5px] tabular-nums text-ink-soft">{r.latency_ms ?? 0} ms, status {r.status}</span>
+        <span className="font-mono text-code text-muted">{r.prompt_version}</span>
+        <span className="text-caption tabular-nums text-ink-soft">{r.latency_ms ?? 0} ms, status {r.status}</span>
       </div>
-      <div className="space-y-4 px-5 py-4 text-[13.5px]">
+      <div className="space-y-4 px-5 py-4 text-body-sm">
         {r.fallback_reason && <p className="text-warn">Fallback: {r.fallback_reason}</p>}
         <div>
-          <p className="text-[12.5px] font-semibold text-ink">Saran fakta yang lolos validator</p>
-          {r.accepted.length === 0 ? <p className="mt-1 text-ink-soft">Tidak ada.</p> : <ul className="mt-1.5 space-y-1">{r.accepted.map((a, i) => <li key={i}><span className="break-all font-mono text-[12.5px]">{a.slot}{a.subject ? `[${a.subject}]` : ""} = {a.value}</span>{a.quote ? <span className="text-ink-soft"> , “{a.quote}”</span> : null}</li>)}</ul>}
+          <p className="text-caption font-semibold text-ink">Saran fakta yang lolos validator</p>
+          {r.accepted.length === 0 ? <p className="mt-1 text-ink-soft">Tidak ada.</p> : <ul className="mt-1.5 space-y-1">{r.accepted.map((a, i) => <li key={i}><span className="break-all font-mono text-code">{a.slot}{a.subject ? `[${a.subject}]` : ""} = {a.value}</span>{a.quote ? <span className="text-ink-soft"> , “{a.quote}”</span> : null}</li>)}</ul>}
         </div>
-        {r.rejected.length > 0 && <div><p className="text-[12.5px] font-semibold text-ink">Ditolak validator</p><ul className="mt-1.5 space-y-1 text-danger">{r.rejected.map((a, i) => <li key={i} className="break-all font-mono text-[12.5px]">{a.slot} = {a.value} ({a.reason})</li>)}</ul></div>}
-        <p><span className="font-semibold text-ink">Pertanyaan berikut: </span><span className="font-mono text-[12.5px]">{r.next_question_id ?? "— (aturan menentukan)"}</span>{r.next_issue ? <span className="text-danger"> ditolak: {r.next_issue}</span> : null}</p>
+        {r.rejected.length > 0 && <div><p className="text-caption font-semibold text-ink">Ditolak validator</p><ul className="mt-1.5 space-y-1 text-danger">{r.rejected.map((a, i) => <li key={i} className="break-all font-mono text-code">{a.slot} = {a.value} ({a.reason})</li>)}</ul></div>}
+        <p><span className="font-semibold text-ink">Pertanyaan berikut: </span><span className="font-mono text-code">{r.next_question_id ?? "— (aturan menentukan)"}</span>{r.next_issue ? <span className="text-danger"> ditolak: {r.next_issue}</span> : null}</p>
         {r.phrase_suggestion && <p><span className="font-semibold text-ink">Saran redaksi: </span>{r.phrase_suggestion}</p>}
         {r.phrase_issue && <p className="text-danger">Redaksi ditolak: {r.phrase_issue}</p>}
         {r.needs_human_help && <Pill className={TONE_CLASS.warn}>meminta bantuan manusia</Pill>}
@@ -106,13 +106,13 @@ export function SandboxLab() {
     }
   }
 
-  if (!opts) return <p role={err ? "alert" : "status"} className={`text-[13.5px] ${err ? "text-danger" : "text-ink-soft"}`}>{err ?? "Memuat sandbox…"}</p>;
+  if (!opts) return <p role={err ? "alert" : "status"} className={`text-body-sm ${err ? "text-danger" : "text-ink-soft"}`}>{err ?? "Memuat sandbox…"}</p>;
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader title="Skenario uji" hint="Atur konteks dan jawaban, lalu jalankan." />
         <div className="space-y-5 px-5 py-4">
-          <div className="grid gap-x-4 gap-y-3 sm:grid-cols-3">
+          <div className="grid-auto-sm grid gap-x-4 gap-y-3">
             <div><label className={lbl} htmlFor="sb-stage">Tahap</label><select id="sb-stage" value={f.stage} onChange={(e) => setF({ ...f, stage: e.target.value })} className={sel}><option value="pre">Pra</option><option value="intra">Intra</option><option value="post">Pasca</option><option value="directed">Terarah</option></select></div>
             <div><label className={lbl} htmlFor="sb-ep">Jenis episode</label><select id="sb-ep" value={f.episode_kind} onChange={(e) => setF({ ...f, episode_kind: e.target.value })} className={sel}><option value="RITL">Rawat inap (RITL)</option><option value="RJTL">Rawat jalan (RJTL)</option></select></div>
             <div><label className={lbl} htmlFor="sb-fk">Jenis faskes</label><select id="sb-fk" value={f.facility_kind} onChange={(e) => setF({ ...f, facility_kind: e.target.value })} className={sel}><option value="hospital">Rumah sakit</option><option value="puskesmas">Puskesmas</option></select></div>
@@ -127,7 +127,7 @@ export function SandboxLab() {
           <div className="grid gap-4 md:grid-cols-2">
             {([["A", "pa", "modeA", "faultA"], ["B", "pb", "modeB", "faultB"]] as const).map(([label, p, m, ft]) => (
               <fieldset key={label} className={`space-y-3 rounded-xl border border-line bg-subtle/50 p-4 ${label === "B" && !f.compare ? "opacity-40" : ""}`} disabled={label === "B" && !f.compare}>
-                <legend className="px-1 text-[13px] font-semibold text-ink">Varian {label}</legend>
+                <legend className="px-1 text-caption font-semibold text-ink">Varian {label}</legend>
                 <div><label className={lbl}>Versi prompt<select value={f[p]} onChange={(e) => setF({ ...f, [p]: e.target.value })} className={`${sel} mt-1.5 font-normal`}>{opts.prompts.map((x) => <option key={x.version} value={x.version}>{x.version}</option>)}</select></label></div>
                 <div><label className={lbl}>Mode<select value={f[m]} onChange={(e) => setF({ ...f, [m]: e.target.value })} className={`${sel} mt-1.5 font-normal`}><option value="simulated">Simulasi</option><option value="live" disabled={!opts.live_available}>AI langsung{opts.live_available ? "" : " (kunci tidak ada)"}</option></select></label></div>
                 <div><label className={lbl}>Suntik kegagalan<select value={f[ft]} onChange={(e) => setF({ ...f, [ft]: e.target.value })} className={`${sel} mt-1.5 font-normal`}><option value="">Tidak ada</option>{opts.faults.map((x) => <option key={x} value={x}>{FAULT_LABEL[x] ?? x}</option>)}</select></label></div>
@@ -135,18 +135,18 @@ export function SandboxLab() {
             ))}
           </div>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-line pt-4">
-            <label className="flex min-h-9 items-center gap-2 text-[14px] text-ink"><input type="checkbox" checked={f.compare} onChange={(e) => setF({ ...f, compare: e.target.checked })} /> Bandingkan A dan B</label>
+            <label className="flex min-h-9 items-center gap-2 text-body-sm text-ink"><input type="checkbox" checked={f.compare} onChange={(e) => setF({ ...f, compare: e.target.checked })} /> Bandingkan A dan B</label>
             <div className="min-w-0 flex-1 basis-56"><input aria-label="Nama eksperimen" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Nama eksperimen (opsional)" className="field" /></div>
             <button type="button" onClick={run} disabled={busy || !f.question_id || !f.answer_text.trim()} className={`${primary} w-full sm:w-auto`}>{busy ? "Menjalankan…" : "Jalankan"}</button>
           </div>
-          <p className="text-[12.5px] text-muted">Sandbox tidak membuat sesi, fakta, atau temuan nyata, dan pemanggilannya tidak masuk metrik operasional.</p>
+          <p className="text-caption text-muted">Sandbox tidak membuat sesi, fakta, atau temuan nyata, dan pemanggilannya tidak masuk metrik operasional.</p>
           {err && <Notice tone="danger"><span role="alert">{err}</span></Notice>}
         </div>
       </Card>
 
       {out && (
         <section className="space-y-4" aria-live="polite" aria-labelledby="sb-result">
-          <h2 id="sb-result" className="text-[15px] font-semibold tracking-tight text-ink">Hasil <span className="font-mono text-[13px]">{out.id}</span></h2>
+          <h2 id="sb-result" className="text-body font-semibold tracking-tight text-ink">Hasil <span className="font-mono text-caption">{out.id}</span></h2>
           <div className={`grid gap-4 ${out.b ? "lg:grid-cols-2" : ""}`}>
             <Result title="Varian A" r={out.a} />
             {out.b && <Result title="Varian B" r={out.b} />}
@@ -164,17 +164,17 @@ export function SandboxLab() {
       )}
 
       <section className="space-y-3" aria-labelledby="sb-runs">
-        <h2 id="sb-runs" className="text-[15px] font-semibold tracking-tight text-ink">Eksperimen terakhir</h2>
+        <h2 id="sb-runs" className="text-body font-semibold tracking-tight text-ink">Eksperimen terakhir</h2>
         <TableCard label="Eksperimen sandbox terakhir">
           {runs.length === 0 ? <EmptyState title="Belum ada eksperimen">Jalankan skenario di atas; hasilnya tersimpan di sini.</EmptyState> : (
-            <table className="w-full min-w-[40rem] text-left text-[13px]">
+            <table className="w-full min-w-[40rem] text-left text-caption">
               <thead><tr><th className="px-4 py-2.5">ID</th><th className="px-4 py-2.5">Waktu</th><th className="px-4 py-2.5">Pertanyaan dan jawaban</th><th className="px-4 py-2.5">A</th><th className="px-4 py-2.5">B</th><th className="px-4 py-2.5">Koreksi</th></tr></thead>
               <tbody className="align-top">
                 {runs.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-4 py-3 font-mono text-[12px]">{r.id}{r.name ? <span className="block font-sans text-[12.5px] text-ink-soft">{r.name}</span> : null}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[12.5px] text-ink-soft">{r.created_at.slice(0, 16)}</td>
-                    <td className="px-4 py-3"><span className="font-mono text-[12px]">{r.input?.spec?.question_id}</span><span className="block text-ink-soft">{r.input?.spec?.answer_text}</span></td>
+                    <td className="px-4 py-3 font-mono text-code">{r.id}{r.name ? <span className="block font-sans text-caption text-ink-soft">{r.name}</span> : null}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-caption text-ink-soft">{r.created_at.slice(0, 16)}</td>
+                    <td className="px-4 py-3"><span className="font-mono text-code">{r.input?.spec?.question_id}</span><span className="block text-ink-soft">{r.input?.spec?.answer_text}</span></td>
                     <td className="px-4 py-3">{r.output_a ? `${r.output_a.mode}, ${r.output_a.accepted.length} lolos` : "—"}</td>
                     <td className="px-4 py-3">{r.output_b ? `${r.output_b.mode}, ${r.output_b.accepted.length} lolos` : "—"}</td>
                     <td className="px-4 py-3 text-ink-soft">{r.corrected ? r.corrected.facts.map((x) => `${x.slot}=${x.value}`).join(", ") : "—"}</td>

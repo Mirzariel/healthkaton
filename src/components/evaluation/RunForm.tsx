@@ -42,7 +42,7 @@ export function RunForm({ liveReady, liveNote }: { liveReady: boolean; liveNote:
 
   return (
     <form onSubmit={submit} className="space-y-4 px-5 py-4" aria-describedby="runform-help">
-      <div className="grid gap-x-5 gap-y-4 md:grid-cols-3">
+      <div className="grid-auto-sm grid gap-x-5 gap-y-4">
         <div>
           <label htmlFor="ev-split" className="field-label">Bagian dataset</label>
           <select id="ev-split" value={split} onChange={(e) => setSplit(e.target.value)} className="field">
@@ -53,8 +53,8 @@ export function RunForm({ liveReady, liveNote }: { liveReady: boolean; liveNote:
         </div>
         <fieldset>
           <legend className="field-label">Sistem yang dibandingkan</legend>
-          <label className="flex min-h-9 items-center gap-2.5 text-[14px] text-ink"><input type="checkbox" checked={systems.includes("baseline_rules")} onChange={() => toggle("baseline_rules")} /> Baseline aturan</label>
-          <label className="flex min-h-9 items-center gap-2.5 text-[14px] text-ink"><input type="checkbox" checked={systems.includes("rules_plus_llm")} onChange={() => toggle("rules_plus_llm")} /> Aturan + penyedia AI</label>
+          <label className="flex min-h-9 items-center gap-2.5 text-body-sm text-ink"><input type="checkbox" checked={systems.includes("baseline_rules")} onChange={() => toggle("baseline_rules")} /> Baseline aturan</label>
+          <label className="flex min-h-9 items-center gap-2.5 text-body-sm text-ink"><input type="checkbox" checked={systems.includes("rules_plus_llm")} onChange={() => toggle("rules_plus_llm")} /> Aturan + penyedia AI</label>
         </fieldset>
         <div>
           <label htmlFor="ev-provider" className="field-label">Penyedia AI</label>
@@ -65,7 +65,7 @@ export function RunForm({ liveReady, liveNote }: { liveReady: boolean; liveNote:
           </select>
         </div>
       </div>
-      <p id="runform-help" className="max-w-3xl text-[13px] leading-relaxed text-ink-soft">{liveNote}</p>
+      <p id="runform-help" className="max-w-3xl text-caption leading-relaxed text-ink-soft">{liveNote}</p>
       <div className="flex flex-wrap items-center gap-3">
         <button disabled={busy} className="btn btn-primary w-full sm:w-auto">{busy ? "Menjalankan…" : "Jalankan evaluasi"}</button>
       </div>

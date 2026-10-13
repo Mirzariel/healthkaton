@@ -47,7 +47,7 @@ export function ConfigForm({ active, prompts }: { active: CfgView; prompts: { ve
   return (
     <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="space-y-6">
       <fieldset className="space-y-3">
-        <legend className="mb-1 text-[13px] font-semibold text-ink">Model dan perilaku</legend>
+        <legend className="mb-1 text-caption font-semibold text-ink">Model dan perilaku</legend>
         <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
           <F id="cf-prompt" label="Versi prompt">
             <select id="cf-prompt" value={c.prompt_version} onChange={(e) => setC({ ...c, prompt_version: e.target.value })} className="field">{prompts.map((p) => <option key={p.version} value={p.version}>{p.version} · {p.title}</option>)}</select>
@@ -58,7 +58,7 @@ export function ConfigForm({ active, prompts }: { active: CfgView; prompts: { ve
             </select>
           </F>
           <F id="cf-model" label="Model">
-            <input id="cf-model" value={c.model} onChange={(e) => setC({ ...c, model: e.target.value })} className="field font-mono text-[13px]" />
+            <input id="cf-model" value={c.model} onChange={(e) => setC({ ...c, model: e.target.value })} className="field font-mono text-caption" />
           </F>
           <F id="cf-bank" label="Mode bank">
             <select id="cf-bank" value={c.bank_mode} onChange={(e) => setC({ ...c, bank_mode: e.target.value as CfgView["bank_mode"] })} className="field">
@@ -68,8 +68,8 @@ export function ConfigForm({ active, prompts }: { active: CfgView; prompts: { ve
         </div>
       </fieldset>
       <fieldset className="space-y-3 border-t border-line pt-5">
-        <legend className="mb-1 text-[13px] font-semibold text-ink">Batas dan anggaran</legend>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-3">
+        <legend className="mb-1 text-caption font-semibold text-ink">Batas dan anggaran</legend>
+        <div className="grid-auto-sm grid gap-x-4 gap-y-3">
           <F id="cf-timeout" label="Batas waktu panggilan (ms)"><input id="cf-timeout" type="number" value={c.timeout_ms} onChange={num("timeout_ms")} className="field tabular-nums" /></F>
           <F id="cf-retry" label="Pengulangan maksimum"><input id="cf-retry" type="number" value={c.max_retries} onChange={num("max_retries")} className="field tabular-nums" /></F>
           <F id="cf-lat" label="Anggaran latensi per giliran (ms)" className="col-span-2 lg:col-span-1"><input id="cf-lat" type="number" value={c.budget_latency_ms} onChange={num("budget_latency_ms")} className="field tabular-nums" /></F>
@@ -107,10 +107,10 @@ export function ActivateButton({ version }: { version: number }) {
   if (!open) return <button type="button" onClick={() => setOpen(true)} className={btn}>Aktifkan kembali</button>;
   return (
     <span className="flex flex-wrap items-center justify-end gap-2">
-      <input aria-label="Alasan pengaktifan" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Alasan (min. 5 karakter)" className="field !min-h-8 w-52 !py-1 text-[13px]" />
+      <input aria-label="Alasan pengaktifan" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Alasan (min. 5 karakter)" className="field !min-h-8 w-52 !py-1 text-caption" />
       <button type="button" onClick={go} disabled={note.trim().length < 5} className="btn btn-primary btn-sm">Aktifkan</button>
       <button type="button" onClick={() => setOpen(false)} className={btn}>Batal</button>
-      {err && <span role="alert" className="w-full text-right text-[13px] text-danger">{err}</span>}
+      {err && <span role="alert" className="w-full text-right text-caption text-danger">{err}</span>}
     </span>
   );
 }

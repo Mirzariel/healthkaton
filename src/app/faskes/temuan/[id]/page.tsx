@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommandForm } from "@/components/casework/CommandForm";
 import { Quote, Tag } from "@/components/casework/parts";
+import { CodeTag } from "@/components/explain";
 import { ActionProgress, DueLine, Timeline, type TimelineItem } from "@/components/faskes/parts";
 import { Card, CardHeader, DescList, Forbidden, Notice, PageHeader, ProofBadge, Section, SectionTitle, StatusPill } from "@/components/ui";
 import { AuthError, can } from "@/lib/auth/principal";
@@ -47,8 +48,9 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
 
   const facts = [
     { k: "Status pembuktian", v: <ProofBadge status={f.proof_status} /> },
+    { k: "Nomor temuan", v: <CodeTag k="temuan">{f.id}</CodeTag> },
     { k: "Jenis temuan", v: f.type_label },
-    ...(f.claim_no ? [{ k: "Nomor klaim", v: <span className="font-mono text-[13px]">{f.claim_no}</span> }] : []),
+    ...(f.claim_no ? [{ k: "Nomor klaim", v: <CodeTag k="klaim">{f.claim_no}</CodeTag> }] : []),
     { k: "Tanggal perawatan", v: fmtDate(f.admit_date) },
     { k: "Terakhir diperbarui", v: fmtDate(f.updated_at) },
   ];
@@ -57,7 +59,7 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
     <>
       <PageHeader title={f.title} crumbs={[{ label: "Ringkasan", href: "/faskes" }, { label: f.id }]} purpose="Yang diketahui petugas tentang temuan ini.">
         {answerable ? (
-          <Link href={`/faskes/klarifikasi/${answerable.id}`} className="btn btn-primary">Jawab klarifikasi {answerable.id}</Link>
+          <Link href={`/faskes/klarifikasi/${answerable.id}`} className="btn btn-primary">Jawab klarifikasi</Link>
         ) : v.canDispute ? (
           <a href="#bantahan" className="btn btn-secondary">Ajukan bantahan</a>
         ) : null}
@@ -72,9 +74,9 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
             </div>
             {f.proof_status === "verified" && f.causes.length > 0 && (
               <div className="border-t border-line px-5 py-4">
-                <p className="text-[13px] font-medium text-ink-soft">Penyebab yang ditetapkan petugas</p>
+                <p className="text-caption font-medium text-ink-soft">Penyebab yang ditetapkan petugas</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">{f.causes.map((c) => <Tag key={c} t="info">{CAUSE_LABEL[c as keyof typeof CAUSE_LABEL]?.label ?? c}</Tag>)}</div>
-                {f.causes_note && <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-soft">{f.causes_note}</p>}
+                {f.causes_note && <p className="mt-2 max-w-2xl text-body-sm leading-relaxed text-ink-soft">{f.causes_note}</p>}
               </div>
             )}
             {f.proof_status === "inconclusive" && (
@@ -85,21 +87,23 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
           </Card>
 
           <Section id="klarifikasi" className="mt-0">
-            <SectionTitle title="Permintaan klarifikasi" />
+            <SectionTitle title="Permintaan klarifikasi" info="klarifikasi" />
             {v.clarifications.length === 0 ? (
-              <p className="text-[14px] text-muted">Belum ada.</p>
+              <p className="text-body-sm text-muted">Belum ada.</p>
             ) : (
               <Card className="divide-y divide-line overflow-hidden">
                 {v.clarifications.map((c) => {
                   const l = CLARIFICATION_LABEL[c.status as keyof typeof CLARIFICATION_LABEL];
                   return (
                     <Link key={c.id} href={`/faskes/klarifikasi/${c.id}`} className="block px-4 py-3.5 transition-colors hover:bg-subtle/70">
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        <span className="font-mono text-[12px] text-muted">{c.id}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="line-clamp-2 min-w-0 max-w-3xl text-body-sm leading-relaxed text-ink">{c.issue}</p>
                         <StatusPill tone={l.tone} title={l.hint}>{l.label}</StatusPill>
                       </div>
-                      <p className="mt-1 line-clamp-2 max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">{c.issue}</p>
-                      <p className="mt-1.5 text-[12.5px] text-muted"><DueLine status={c.status} dueAt={c.due_at} answeredAt={c.answered_at} now={now} /></p>
+                      <p className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
+                        <DueLine status={c.status} dueAt={c.due_at} answeredAt={c.answered_at} now={now} />
+                        <span title="Nomor permintaan klarifikasi">No. <span className="font-mono">{c.id}</span></span>
+                      </p>
                     </Link>
                   );
                 })}
@@ -108,22 +112,22 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
           </Section>
 
           <Section id="bantahan" className="mt-0 scroll-mt-40">
-            <SectionTitle title="Bantahan" hint="Ajukan bila Anda tidak sependapat dengan temuan atau statusnya." />
-            <details className="group -mt-2 text-[13px] text-muted">
+            <SectionTitle title="Bantahan" info="hakJawab" hint="Ajukan bila Anda tidak sependapat dengan temuan atau statusnya." />
+            <details className="group -mt-2 text-caption text-muted">
               <summary className="cursor-pointer select-none font-medium text-brand-ink hover:underline">Selengkapnya</summary>
               <p className="mt-1 max-w-2xl leading-relaxed">Reviewer menanggapi dengan alasan. Bantahan yang diterima atas temuan final membuka ulang peninjauan.</p>
             </details>
             {v.disputes.map((d) => (
               <Card key={d.id} className="space-y-3 px-5 py-4">
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <span className="font-mono text-[12px] text-muted">{d.id}</span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <StatusPill tone={DISPUTE_LABEL[d.status].tone}>{DISPUTE_LABEL[d.status].label}</StatusPill>
-                  <span className="text-[12.5px] text-muted">{fmtDateTime(d.created_at)}</span>
+                  <span className="text-caption text-muted">Diajukan {fmtDateTime(d.created_at)}</span>
+                  <span className="text-caption text-muted" title="Nomor bantahan">No. <span className="font-mono">{d.id}</span></span>
                 </div>
                 <Quote by="Bantahan Anda">{d.text}</Quote>
                 {d.response && (
-                  <div className="rounded-lg border border-line bg-subtle/60 px-3.5 py-2.5 text-[14px] leading-relaxed text-ink-soft">
-                    <p className="text-[12.5px] font-medium text-ink">Tanggapan reviewer</p>
+                  <div className="rounded-control bg-subtle px-3.5 py-2.5 text-body-sm leading-relaxed text-ink-soft">
+                    <p className="text-caption font-medium text-ink">Tanggapan reviewer</p>
                     {d.response}
                   </div>
                 )}
@@ -139,16 +143,15 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
           </Section>
 
           <Section id="tindakan" className="mt-0">
-            <SectionTitle title="Tindakan perbaikan" />
-            {v.actions.length === 0 && <p className="text-[14px] text-muted">Belum ada.</p>}
+            <SectionTitle title="Tindakan perbaikan" info="tindakan" />
+            {v.actions.length === 0 && <p className="text-body-sm text-muted">Belum ada.</p>}
             {v.actions.map((a) => (
               <Card key={a.id} className="space-y-3 px-5 py-4">
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <span className="font-mono text-[12px] text-muted">{a.id}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 text-body leading-relaxed text-ink">{a.description}</p>
                   <StatusPill tone={a.status === "closed" ? "ok" : a.status === "follow_up_pending" ? "info" : "warn"}>{ACTION_LABEL[a.status as keyof typeof ACTION_LABEL] ?? a.status}</StatusPill>
                 </div>
-                <p className="text-[14.5px] leading-relaxed text-ink">{a.description}</p>
-                <p className="text-[13px] text-muted">Pemilik {a.owner}, target {fmtDate(a.target_date)}</p>
+                <p className="text-caption text-muted">Pemilik {a.owner}, target {fmtDate(a.target_date)} <span className="ml-2" title="Nomor tindakan">No. <span className="font-mono">{a.id}</span></span></p>
                 <ActionProgress status={a.status} />
               </Card>
             ))}
@@ -173,7 +176,7 @@ export default async function FaskesFinding({ params }: { params: Promise<{ id: 
             <CardHeader title="Riwayat" />
             <div className="px-5 py-4"><Timeline items={history} /></div>
           </div>
-          <p className="px-1 text-[12.5px] leading-relaxed text-muted">Anda berhak menjelaskan dan membantah kapan saja; jawaban terlambat tetap diterima. Skor sinyal, jawaban peserta, dan catatan internal tidak ditampilkan.</p>
+          <p className="px-1 text-caption leading-relaxed text-muted">Anda berhak menjelaskan dan membantah kapan saja; jawaban terlambat tetap diterima. Skor sinyal, jawaban peserta, dan catatan internal tidak ditampilkan.</p>
         </aside>
       </div>
     </>

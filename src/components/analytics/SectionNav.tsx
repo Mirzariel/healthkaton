@@ -26,13 +26,13 @@ export function SectionNav({ items, label = "Di halaman ini" }: { items: Section
     <nav aria-label={label} className="no-print sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 backdrop-blur-sm md:-mx-8 md:px-8">
       <div className="scroll-x">
         <ul className="flex min-w-max items-center gap-1 py-1.5">
-          <li className="pr-2 text-[12.5px] text-muted">{label}</li>
+          <li className="pr-2 text-caption text-muted">{label}</li>
           {items.map((i) => (
             <li key={i.id}>
               <a
                 href={`#${i.id}`}
                 aria-current={current === i.id ? "location" : undefined}
-                className={`inline-flex h-7 items-center rounded-md px-2.5 text-[13px] font-medium transition-colors ${current === i.id ? "bg-ink text-white" : "text-ink-soft hover:bg-subtle hover:text-ink"}`}
+                className={`inline-flex h-7 items-center rounded-md px-2.5 text-caption font-medium transition-colors ${current === i.id ? "bg-ink text-white" : "text-ink-soft hover:bg-subtle hover:text-ink"}`}
               >
                 {i.label}
               </a>

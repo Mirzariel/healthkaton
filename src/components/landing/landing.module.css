@@ -1,0 +1,96 @@
+/* Gaya khusus beranda. Token warna/bayangan berasal dari globals.css (milik sistem desain). */
+
+/* Butiran halus di permukaan gelap: memberi tekstur, bukan hiasan. */
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Kaca gelap untuk nav, chip, dan tombol di atas media. */
+.glass {
+  background: rgb(11 23 20 / 0.62);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 12px 40px -12px rgb(0 0 0 / 0.5);
+}
+
+/* Potongan layar produk: tepi bawah memudar, seolah layarnya lebih panjang dari bingkai. */
+.cropMask {
+  -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+}
+
+/* Rel geser horizontal di HP: snap per kartu, tanpa bilah gulir. */
+.rail {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Lampu sorot lembut untuk adegan gelap. */
+.glow {
+  background:
+    radial-gradient(60% 50% at 20% 10%, rgb(47 165 143 / 0.16), transparent 70%),
+    radial-gradient(50% 40% at 85% 90%, rgb(143 211 195 / 0.08), transparent 70%);
+}
+
+/* Disclosure tanpa segitiga bawaan. */
+.summary {
+  list-style: none;
+  cursor: pointer;
+}
+.summary::-webkit-details-marker {
+  display: none;
+}
+details[open] > .summary .chev {
+  transform: rotate(180deg);
+}
+.chev {
+  transition: transform 320ms var(--ease-out-expo);
+}
+
+/* Ubin pintu: terangkat saat disorot. */
+.lift {
+  transition:
+    transform 600ms var(--ease-out-expo),
+    box-shadow 600ms var(--ease-out-expo);
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-e3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift:hover {
+    transform: none;
+  }
+}
+
+/* Kaca terang untuk nav di atas permukaan kertas. */
+.glassLight {
+  background: rgb(255 255 255 / 0.7);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 1px rgb(20 23 22 / 0.06),
+    var(--shadow-e2);
+}

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { CodeTag, InfoDot } from "@/components/explain";
 import { Pager, Tag, userName } from "@/components/casework/parts";
 import { FilterField, FilterForm, RecordId, rowLink } from "@/components/console/Parts";
-import { EmptyState, Forbidden, LinkTabs, PageHeader, ProofBadge, SimNotice, Stat, TableCard } from "@/components/ui";
+import { EmptyState, Forbidden, LinkTabs, PageHeader, ProofBadge, SimNotice, Stat, StatGrid, TableCard } from "@/components/ui";
 import { can } from "@/lib/auth/principal";
 import { FINDING_LABEL, PROOF_LABEL, ACTION_LABEL } from "@/lib/labels";
 import { SOURCE_LABEL, PRIORITY_LABEL } from "@/lib/casework/labels";
@@ -36,13 +37,13 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
   const actionsFiltered = !!(params.status || params.facility || params.overdue);
   return (
     <>
-      <PageHeader title="Antrean kasus" purpose="Temuan yang perlu dibuktikan, dan tindakan perbaikan yang belum tuntas." eyebrow="Kerja" />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <PageHeader title="Antrean kasus" purpose="Temuan yang perlu dibuktikan dan perbaikan yang belum tuntas." eyebrow="Kerja" />
+      <StatGrid>
         <Stat label="Temuan aktif" value={counts.active} hint={`${counts.signal} berstatus sinyal`} />
         <Stat label="Menunggu klarifikasi faskes" value={counts.awaiting} tone="warn" hint="Hak jawab faskes berjalan" />
         <Stat label="Usulan menunggu reviewer" value={counts.pendingProposals} hint={`${counts.pendingEscalations} eskalasi menunggu pihak kedua`} />
         <Stat label="Bantahan belum ditanggapi" value={counts.disputes} tone={counts.disputes ? "danger" : "default"} hint="Perlu tanggapan reviewer" />
-      </div>
+      </StatGrid>
       <div className="mt-8">
         <LinkTabs label="Antrean" items={[
           { href: "/console/cases?tab=proof", label: "Antrean pembuktian", active: tab === "proof", count: counts.active },
@@ -52,9 +53,9 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
 
       {tab === "proof" && proof && (
         <section className="mt-4 space-y-3" aria-label="Antrean pembuktian">
-          <FilterForm cols="sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" label="Saring antrean" resetHref={proofFiltered ? "/console/cases?tab=proof" : undefined}>
+          <FilterForm label="Saring antrean" resetHref={proofFiltered ? "/console/cases?tab=proof" : undefined}>
             <input type="hidden" name="tab" value="proof" />
-            <FilterField label="Cari" span="col-span-2"><input name="q" defaultValue={params.q} placeholder="nomor, judul, faskes" className="field" /></FilterField>
+            <FilterField label="Cari"><input name="q" defaultValue={params.q} placeholder="nomor, judul, faskes" className="field" /></FilterField>
             <FilterField label="Status"><select name="stage" defaultValue={params.stage ?? "active"} className="field">
               <option value="active">Belum final</option><option value="all">Semua</option><option value="final">Sudah final</option>
               {Object.entries(PROOF_LABEL).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -80,20 +81,20 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
               {proof.rows.map((r) => (
                 <li key={r.finding_id} className="p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <RecordId>{r.finding_id}</RecordId>
+                    <CodeTag k="temuan" className="text-muted">{r.finding_id}</CodeTag>
                     <ProofBadge status={r.proof_status} />
                   </div>
-                  <Link href={`/console/cases/${r.case_id}#${r.finding_id}`} className={`${rowLink} mt-2 block py-1 text-[14px] leading-snug`}>{r.title}</Link>
-                  <p className="mt-1 text-[13px] text-ink-soft">{r.facility_name.replace(" (simulasi)", "")}</p>
+                  <Link href={`/console/cases/${r.case_id}#${r.finding_id}`} className={`${rowLink} mt-2 block py-1 text-body-sm leading-snug`}>{r.title}</Link>
+                  <p className="mt-1 text-caption text-ink-soft">{r.facility_name.replace(" (simulasi)", "")}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Tag t={prioTone(r.priority)} title={`Skor sinyal ${r.score}`}>Prioritas {PRIORITY_LABEL[r.priority]?.label.toLowerCase() ?? r.priority}</Tag>
                     {r.open_clarifications > 0 && <Tag t="warn">Menunggu faskes</Tag>}
                     {r.open_disputes > 0 && <Tag t="danger">Ada bantahan</Tag>}
                   </div>
-                  <dl className="mt-3 grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-[12.5px]">
+                  <dl className="mt-3 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-caption">
                     <dt className="text-muted">Sumber</dt><dd>{SOURCE_LABEL[r.source]?.label ?? r.source}</dd>
                     <dt className="text-muted">Penanggung jawab</dt><dd>{userName(r.assignee_id, names)}</dd>
-                    {r.claim_no && <><dt className="text-muted">Klaim</dt><dd className="break-words font-mono text-[12px]">{r.claim_no}</dd></>}
+                    {r.claim_no && <><dt className="text-muted">Klaim</dt><dd className="break-words font-mono text-code">{r.claim_no}</dd></>}
                     <dt className="text-muted">Pembaruan</dt><dd className="tabular-nums">{fmtDate(r.updated_at)}</dd>
                   </dl>
                 </li>
@@ -102,20 +103,20 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
           )}
           <TableCard label="Antrean pembuktian" className={proof.rows.length > 0 ? "hidden md:block" : ""}>
             {proof.rows.length === 0 ? <EmptyState title="Tidak ada temuan yang cocok">Ubah atau atur ulang saringan di atas.</EmptyState> : (
-              <table className="w-full text-left text-[13.5px]">
+              <table className="w-full text-left text-body-sm">
                 <caption className="sr-only">Antrean pembuktian</caption>
-                <thead><tr><th className="px-4 py-2.5">Temuan</th><th className="hidden px-4 py-2.5 lg:table-cell">Sumber</th><th className="hidden px-4 py-2.5 md:table-cell">Faskes</th><th className="px-4 py-2.5">Status</th><th className="hidden px-4 py-2.5 sm:table-cell">Prioritas</th><th className="hidden px-4 py-2.5 xl:table-cell">Penanggung jawab</th><th className="hidden px-4 py-2.5 md:table-cell">Pembaruan</th></tr></thead>
+                <thead><tr><th className="px-4 py-2.5"><span className="inline-flex items-center gap-1">Temuan <InfoDot k="temuan" /></span></th><th className="hidden px-4 py-2.5 lg:table-cell">Sumber</th><th className="hidden px-4 py-2.5 md:table-cell">Faskes</th><th className="px-4 py-2.5">Status</th><th className="hidden px-4 py-2.5 sm:table-cell">Prioritas</th><th className="hidden px-4 py-2.5 xl:table-cell">Penanggung jawab</th><th className="hidden px-4 py-2.5 md:table-cell">Pembaruan</th></tr></thead>
                 <tbody>
                   {proof.rows.map((r) => (
                     <tr key={r.finding_id} className="align-top">
                       <td className="px-4 py-3">
                         <Link href={`/console/cases/${r.case_id}#${r.finding_id}`} className={`${rowLink} block max-w-[28rem]`}>{r.title}</Link>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
                           <RecordId>{r.finding_id}</RecordId><span className="hidden sm:inline">{FINDING_LABEL[r.type].short}</span>{r.claim_no && <RecordId>{r.claim_no}</RecordId>}
                           {r.open_clarifications > 0 && <Tag t="warn">Menunggu faskes</Tag>}
                           {r.open_disputes > 0 && <Tag t="danger">Ada bantahan</Tag>}
                         </div>
-                        <p className="mt-1 text-[12px] text-muted md:hidden">{r.facility_name.replace(" (simulasi)", "")} · {fmtDate(r.updated_at)}</p>
+                        <p className="mt-1 text-caption text-muted md:hidden">{r.facility_name.replace(" (simulasi)", "")} · {fmtDate(r.updated_at)}</p>
                       </td>
                       <td className="hidden px-4 py-3 text-ink-soft lg:table-cell">{SOURCE_LABEL[r.source]?.label ?? r.source}</td>
                       <td className="hidden px-4 py-3 text-ink-soft md:table-cell">{r.facility_name.replace(" (simulasi)", "")}</td>
@@ -129,7 +130,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
               </table>
             )}
           </TableCard>
-          <p className="text-[12.5px] text-muted"><span className="tabular-nums">{proof.total}</span> temuan. Skor sinyal hanya mengurutkan antrean, bukan menilai faskes.</p>
+          <p className="text-caption text-muted"><span className="tabular-nums">{proof.total}</span> temuan. Skor sinyal hanya mengurutkan antrean, bukan menilai faskes.</p>
           <Pager base="/console/cases" page={proof.page} pages={proof.pages} params={params} />
         </section>
       )}
@@ -144,11 +145,11 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
             <FilterField label="Faskes"><select name="facility" defaultValue={params.facility ?? ""} className="field">
               <option value="">Semua</option>{facets.facilities.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select></FilterField>
-            <label className="flex h-9 items-center gap-2 text-[14px]"><input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />Hanya yang lewat target</label>
+            <label className="flex h-9 items-center gap-2 text-body-sm"><input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />Hanya yang lewat target</label>
           </FilterForm>
           <TableCard label="Antrean tindakan perbaikan">
             {acts.rows.length === 0 ? <EmptyState title="Tidak ada tindakan perbaikan yang cocok">Ubah atau atur ulang saringan di atas.</EmptyState> : (
-              <table className="w-full text-left text-[13.5px]">
+              <table className="w-full text-left text-body-sm">
                 <caption className="sr-only">Antrean tindakan perbaikan</caption>
                 <thead><tr><th className="px-4 py-2.5">Tindakan</th><th className="hidden px-4 py-2.5 md:table-cell">Faskes</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5">Target</th><th className="hidden px-4 py-2.5 lg:table-cell">Tindak lanjut</th></tr></thead>
                 <tbody>
@@ -156,8 +157,8 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                     <tr key={a.id} className="align-top">
                       <td className="px-4 py-3">
                         {a.case_id ? <Link href={`/console/cases/${a.case_id}#${a.id}`} className={`${rowLink} block max-w-[28rem]`}>{a.description}</Link> : a.description}
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted"><RecordId>{a.id}</RecordId><span>{a.owner ?? "-"}</span>{a.finding_title && <span>{a.finding_title}</span>}</div>
-                        <p className="mt-1 text-[12px] text-muted md:hidden">{a.facility_name.replace(" (simulasi)", "")}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-caption text-muted"><RecordId>{a.id}</RecordId><span>{a.owner ?? "-"}</span>{a.finding_title && <span>{a.finding_title}</span>}</div>
+                        <p className="mt-1 text-caption text-muted md:hidden">{a.facility_name.replace(" (simulasi)", "")}</p>
                       </td>
                       <td className="hidden px-4 py-3 text-ink-soft md:table-cell">{a.facility_name.replace(" (simulasi)", "")}</td>
                       <td className="px-4 py-3"><Tag t={a.status === "closed" ? "ok" : a.status === "follow_up_pending" ? "info" : "warn"}>{ACTION_LABEL[a.status as keyof typeof ACTION_LABEL]}</Tag></td>

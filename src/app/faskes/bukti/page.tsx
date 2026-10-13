@@ -21,12 +21,12 @@ export default async function FaskesEvidence() {
   const clar = facilityClarifications(db, me).filter((c) => c.status === "sent" || c.status === "lapsed");
   return (
     <>
-      <PageHeader title="Dokumen bukti" purpose="Dokumen yang Anda unggah untuk klarifikasi." />
+      <PageHeader title="Dokumen bukti" purpose="Dokumen yang Anda unggah untuk menjawab klarifikasi." />
 
       <Section>
         {clar.length > 0 ? (
           <>
-            <SectionTitle title="Unggah untuk permintaan" hint="Pilih permintaan, lalu lampirkan dokumen di halamannya." />
+            <SectionTitle title="Unggah untuk permintaan" hint="Pilih permintaan, lalu lampirkan di halamannya." />
             <Card elevated className="divide-y divide-line overflow-hidden">
               {clar.map((c) => <ClarificationItem key={c.id} c={c} now={now} compact />)}
             </Card>
@@ -39,7 +39,7 @@ export default async function FaskesEvidence() {
             </div>
           </Card>
         )}
-        <details className="text-[13px] text-muted">
+        <details className="text-caption text-muted">
           <summary className="cursor-pointer select-none font-medium text-brand-ink hover:underline">Cara dokumen dibaca</summary>
           <p className="mt-1 max-w-2xl leading-relaxed">PDF berteks dibaca otomatis. Pindaian dan gambar tidak dibaca mesin (tanpa OCR); petugas mentranskripsinya manual.</p>
         </details>
@@ -53,12 +53,12 @@ export default async function FaskesEvidence() {
           </div>
         ) : (
           <TableCard label="Daftar dokumen bukti">
-            <table className="w-full text-left text-[13.5px]">
+            <table className="table-stack w-full text-left text-body-sm">
               <thead>
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Dokumen</th>
-                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Untuk</th>
-                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Diunggah</th>
+                  <th className="px-4 py-2.5 font-medium">Untuk</th>
+                  <th className="px-4 py-2.5 font-medium">Diunggah</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                 </tr>
               </thead>
@@ -67,14 +67,13 @@ export default async function FaskesEvidence() {
                   <tr key={d.id}>
                     <td className="px-4 py-3">
                       <a href={`/api/documents/${d.id}`} target="_blank" rel="noreferrer" className="link break-all font-medium">{d.name}</a>
-                      <p className="mt-0.5 text-[12px] text-muted"><span className="font-mono">{d.id}</span> &nbsp;{kb(d.size)}</p>
-                      <p className="mt-0.5 text-[12px] text-muted md:hidden">{fmtDateTime(d.created_at)}{d.clarification_id ? `, untuk ${d.clarification_id}` : ""}</p>
+                      <p className="mt-0.5 text-caption text-muted">{kb(d.size)} <span className="ml-2" title="Nomor dokumen">No. <span className="font-mono">{d.id}</span></span></p>
                     </td>
-                    <td className="hidden px-4 py-3 md:table-cell">
-                      {d.clarification_id ? <Link href={`/faskes/klarifikasi/${d.clarification_id}`} className="link font-mono text-[12px]">{d.clarification_id}</Link> : <span className="text-muted">Tanpa permintaan</span>}
+                    <td data-label="Untuk" className="px-4 py-3">
+                      {d.clarification_id ? <Link href={`/faskes/klarifikasi/${d.clarification_id}`} className="link" title="Nomor permintaan klarifikasi">Klarifikasi <span className="font-mono">{d.clarification_id}</span></Link> : <span className="text-muted">Tanpa permintaan</span>}
                     </td>
-                    <td className="hidden whitespace-nowrap px-4 py-3 text-ink-soft md:table-cell">{fmtDateTime(d.created_at)}</td>
-                    <td className="px-4 py-3"><DocStatus status={d.processing_status} /></td>
+                    <td data-label="Diunggah" className="whitespace-nowrap px-4 py-3 text-ink-soft">{fmtDateTime(d.created_at)}</td>
+                    <td data-label="Status" className="px-4 py-3"><DocStatus status={d.processing_status} /></td>
                   </tr>
                 ))}
               </tbody>

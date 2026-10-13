@@ -4,6 +4,7 @@ import { CommandForm } from "@/components/casework/CommandForm";
 import { Quote } from "@/components/casework/parts";
 import { UploadBox } from "@/components/casework/UploadBox";
 import { DocStatus, dueInfo, kb } from "@/components/faskes/parts";
+import { CodeTag } from "@/components/explain";
 import { IconFile } from "@/components/icons";
 import { Card, CardHeader, Forbidden, Notice, PageHeader, ProofBadge, SectionTitle, StatusPill } from "@/components/ui";
 import { AuthError, can } from "@/lib/auth/principal";
@@ -43,13 +44,14 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
       >
         <StatusPill tone={l.tone} title={l.hint}>{l.label}</StatusPill>
       </PageHeader>
+      {d.canAnswer && <a href="#jawab" className="btn btn-primary -mt-2 mb-6 w-full lg:hidden">Jawab permintaan ini</a>}
 
       <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
           {c.status === "lapsed" && <Notice tone="info" title="Lewat tenggat, jawaban tetap diterima" />}
           {c.status === "sent" && (
             <Notice tone={due.soon ? "warn" : "info"} title={`Jawab sebelum ${fmtDateTime(c.due_at)}`}>
-              Terlambat pun tetap diterima dan tidak memengaruhi penilaian.
+              Jawaban terlambat tetap diterima.
             </Notice>
           )}
           {c.status === "answered" && <Notice tone="ok" title={`Sudah dijawab ${fmtDateTime(c.answered_at)}`} />}
@@ -57,13 +59,13 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
           <Card elevated={!d.canAnswer}>
             <CardHeader title="Yang diminta petugas" hint={`Dikirim ${fmtDateTime(c.sent_at)}`} />
             <div className="space-y-4 px-5 py-4">
-              <p className="max-w-2xl text-[15px] leading-relaxed text-ink">{c.issue}</p>
+              <p className="max-w-2xl text-body leading-relaxed text-ink">{c.issue}</p>
               {c.requested_docs.length > 0 && (
                 <div>
-                  <p className="text-[13px] font-medium text-ink-soft">Dokumen yang diminta</p>
+                  <p className="text-caption font-medium text-ink-soft">Dokumen yang diminta</p>
                   <ul className="mt-1.5 space-y-1.5">
                     {c.requested_docs.map((x) => (
-                      <li key={x} className="flex items-start gap-2 text-[14px] text-ink">
+                      <li key={x} className="flex items-start gap-2 text-body-sm text-ink">
                         <IconFile size={15} className="mt-[3px] shrink-0 text-muted" />
                         {x}
                       </li>
@@ -71,7 +73,7 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
                   </ul>
                 </div>
               )}
-              {c.minimal_ref && <p className="text-[13px] text-muted">Rujukan: {c.minimal_ref}</p>}
+              {c.minimal_ref && <p className="text-caption text-muted">Rujukan: {c.minimal_ref}</p>}
             </div>
           </Card>
 
@@ -82,12 +84,12 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
                 <Quote key={i} by={`${m.author_role === "faskes" ? "Faskes" : "Petugas"}, ${fmtDateTime(m.at)}${m.document_id ? `, lampiran ${m.document_id}` : ""}`}>{m.text}</Quote>
               ))}
               {d.docs.length > 0 && (
-                <Card className="divide-y divide-line">
+                <Card className="divide-y divide-line overflow-hidden">
                   {d.docs.map((x) => (
                     <div key={x.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5">
                       <div className="min-w-0">
-                        <a href={`/api/documents/${x.id}`} target="_blank" rel="noreferrer" className="link break-all text-[14px] font-medium">{x.name}</a>
-                        <p className="text-[12.5px] text-muted"><span className="font-mono text-[12px]">{x.id}</span> &nbsp;{kb(x.size)}, {fmtDateTime(x.created_at)}</p>
+                        <a href={`/api/documents/${x.id}`} target="_blank" rel="noreferrer" className="link break-all text-body-sm font-medium">{x.name}</a>
+                        <p className="text-caption text-muted">{kb(x.size)}, {fmtDateTime(x.created_at)} <span className="ml-2" title="Nomor dokumen">No. <span className="font-mono">{x.id}</span></span></p>
                       </div>
                       <DocStatus status={x.processing_status} />
                     </div>
@@ -98,8 +100,8 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
           )}
 
           {d.canAnswer && (
-            <section aria-labelledby="form-jawab">
-              <Card elevated className="border-brand/30">
+            <section aria-labelledby="form-jawab" id="jawab" className="scroll-mt-32">
+              <Card elevated className="ring-1 ring-brand/25">
                 <CardHeader
                   title={<span id="form-jawab">Jawab permintaan ini</span>}
                 />
@@ -121,15 +123,16 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
           <div className="panel-inset">
             <CardHeader title="Rincian" />
             <div className="px-5 py-1">
-              <dl className="divide-y divide-line text-[13.5px]">
+              <dl className="divide-y divide-line text-body-sm">
                 {[
+                  { k: "Nomor", v: <CodeTag k="klarifikasi">{c.id}</CodeTag> },
                   { k: "Dikirim", v: fmtDateTime(c.sent_at) },
                   { k: "Tenggat", v: fmtDateTime(c.due_at) },
                   ...(c.status === "answered" ? [{ k: "Dijawab", v: fmtDateTime(c.answered_at) }] : [{ k: "Sisa waktu", v: due.text }]),
                   ...(d.finding ? [{ k: "Status temuan", v: <ProofBadge status={d.finding.proof_status} /> }] : []),
                 ].map((r) => (
                   <div key={r.k} className="grid grid-cols-[6.5rem_1fr] items-center gap-3 py-2.5">
-                    <dt className="text-[13px] text-muted">{r.k}</dt>
+                    <dt className="text-caption text-muted">{r.k}</dt>
                     <dd className="min-w-0 text-ink">{r.v}</dd>
                   </div>
                 ))}
@@ -138,10 +141,10 @@ export default async function FaskesClarificationDetail({ params }: { params: Pr
           </div>
           {d.finding && (
             <div className="panel-inset px-5 py-4">
-              <p className="text-[13px] font-medium text-ink-soft">Temuan terkait</p>
-              <p className="mt-1 text-[14px] font-semibold leading-snug text-ink">{d.finding.title}</p>
-              <p className="mt-1.5 text-[13px] text-muted">Dapat dibantah kapan saja.</p>
-              <Link className="btn btn-secondary btn-sm mt-3" href={`/faskes/temuan/${d.finding.id}`}>Lihat temuan</Link>
+              <p className="text-caption font-medium text-ink-soft">Temuan terkait</p>
+              <p className="mt-1 text-body-sm font-semibold leading-snug text-ink">{d.finding.title}</p>
+              <p className="mt-1.5 text-caption text-muted">Dapat dibantah kapan saja.</p>
+              <Link className="btn btn-secondary btn-sm mt-3 w-full sm:w-auto" href={`/faskes/temuan/${d.finding.id}`}>Lihat temuan</Link>
             </div>
           )}
         </aside>
